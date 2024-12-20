@@ -44,11 +44,7 @@ public class SitesIndexingService implements IndexingService{
     private final Configuration configuration=new Configuration();
 
     private Lock lock= new ReentrantLock();
-    //private  ForkJoinPool forkJoinPool=new ForkJoinPool(20);
-    private  Thread thread=null;
-    private Thread thread1=null;
-    private volatile boolean control=false;
-
+    public static volatile boolean control = false;
 
 
     @Override
@@ -64,7 +60,7 @@ public class SitesIndexingService implements IndexingService{
             response.setResult(true);
             response.setError("");
 
-            thread=new Thread(()->{
+            Thread thread=new Thread(()->{
                 indexingSite();
             });
             thread.start();
@@ -86,13 +82,10 @@ public class SitesIndexingService implements IndexingService{
             response.setResult(true);
             response.setError("");
 
-            synchronized (thread) {
 
                 control = true;
-                thread.notify();
                 log.info(String.valueOf(control));
 
-            }
 
         }
         return response;
@@ -132,14 +125,12 @@ public class SitesIndexingService implements IndexingService{
     }
 
     public void indexingSite() {
-        //long result;
+
         List<Site> list = sitesList.getSites();
 
-        ForkJoinPool forkJoinPool=new ForkJoinPool(20);
 
         for (Site site : list) {
-
-                String siteUrl = site.getUrl();
+            String siteUrl = site.getUrl();
                 Sites sites = new Sites();
                 sites.setStatus(SiteIndexingStatus.INDEXING);
                 sites.setUrl(siteUrl);
@@ -149,53 +140,26 @@ public class SitesIndexingService implements IndexingService{
 
                 try {
 
-                        //ForkJoinPool forkJoinPool = new ForkJoinPool(20);
+                        ForkJoinPool forkJoinPool = new ForkJoinPool(20);
+
                         CrawlSitePages crawlSitePages = new CrawlSitePages(siteUrl, sites, siteRepository, pageRepository);
 
 
-                        forkJoinPool.submit(crawlSitePages);
+                        forkJoinPool.invoke(crawlSitePages);
 
-
-                        block(forkJoinPool);
+                        log.info("aaaaa");
 
 
                 } catch (Exception e) {
                     log.info("sleep interrupted");
+                    log.info(Thread.currentThread().getName());
                     e.getMessage();
-                    sites.setStatus(SiteIndexingStatus.FAILED);
-                    sites.setStatusTime(LocalDateTime.now());
-                    sites.setLastError("Индексация остановлена пользователем");
-                    siteRepository.save(sites);
+
                     return;
                 }
 
-        }
-
-    }
-    public  void block(ForkJoinPool forkJoinPool){
-        synchronized (thread) {
-            log.info("lock");
-            try {
-
-                Thread.currentThread().wait();
-                if (control) {
-                    log.info(Thread.currentThread().getName() + "block");
-                    log.info(String.valueOf(Thread.currentThread().getState()));
-                    /*try {
-                        forkJoinPool.shutdownNow();
-                        Thread.currentThread().interrupt();
-                    }finally {
-                        forkJoinPool.shutdownNow();
-                    }*/
-                    forkJoinPool.shutdownNow();
-                    Thread.currentThread().interrupt();
-                }
-
-            } catch (Exception e) {
-                e.getMessage();
-                log.info("Hello");
-
-            }
+            log.info("vvvvv");
+            log.info(Thread.currentThread().getName());
 
         }
 

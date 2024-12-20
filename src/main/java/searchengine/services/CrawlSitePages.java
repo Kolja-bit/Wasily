@@ -4,6 +4,7 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
+import org.springframework.stereotype.Component;
 import searchengine.config.Configuration;
 import searchengine.model.Page;
 import searchengine.model.SiteIndexingStatus;
@@ -49,6 +50,12 @@ public class CrawlSitePages extends RecursiveAction {
                 Elements links = doc.select("a[href]");
 
                 if (links.isEmpty()) {
+                    //if (true) {
+                        //System.out.println(Thread.currentThread().getName());
+                    return;
+                }
+                if (SitesIndexingService.control){
+                    System.out.println(Thread.currentThread().getName());
                     return;
                 }
                 for (Element element:links){
