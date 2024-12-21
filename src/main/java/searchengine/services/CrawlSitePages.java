@@ -50,12 +50,17 @@ public class CrawlSitePages extends RecursiveAction {
                 Elements links = doc.select("a[href]");
 
                 if (links.isEmpty()) {
-                    //if (true) {
-                        //System.out.println(Thread.currentThread().getName());
+                    site.setStatus(SiteIndexingStatus.INDEXED);
+                    site.setStatusTime(LocalDateTime.now());
+                    site.setLastError("Индексация сайта окончена");
+                    siteRepository.save(site);
                     return;
                 }
                 if (SitesIndexingService.control){
-                    System.out.println(Thread.currentThread().getName());
+                    site.setStatus(SiteIndexingStatus.FAILED);
+                    site.setStatusTime(LocalDateTime.now());
+                    site.setLastError("Индексация остановлена пользователем");
+                    siteRepository.save(site);
                     return;
                 }
                 for (Element element:links){
@@ -70,17 +75,6 @@ public class CrawlSitePages extends RecursiveAction {
                     }
                 }
 
-                /*links.stream().map((link) -> link.absUrl("href")).forEachOrdered((thisUrl) -> {
-                    boolean add = uniqueURL.add(thisUrl);
-                    if (add && thisUrl.contains(isMySite()) && !isLink(thisUrl)) {
-                        indexingPage(thisUrl, site, doc);
-                        //System.out.println(thisUrl);
-                        CrawlSitePages task = new CrawlSitePages(thisUrl, site, siteRepository, pageRepository);
-                        task.fork();
-                        allTask.add(task);
-
-                    }
-                });*/
 
             } catch (Exception ex) {
                 ex.printStackTrace();
@@ -104,11 +98,7 @@ public class CrawlSitePages extends RecursiveAction {
             site.setStatusTime(LocalDateTime.now());
             siteRepository.save(site);
         }catch (Exception e){
-            page.setPath(path);
-            page.setSite(site);
-            page.setContent(e.getMessage());
-            page.setCode(document.connection().response().statusCode());
-            pageRepository.save(page);
+            e.printStackTrace();
         }
 
     }
@@ -137,68 +127,6 @@ public class CrawlSitePages extends RecursiveAction {
                 link.contains(".?_ga")||
                 link.contains("#");
     }
-
-    /*private  String url;
-    private Configuration configuration=new Configuration();
-
-
-    public CrawlSitePages(String url) {
-        this.url = url;
-    }
-
-    public  TreeSet<String>tr1=new TreeSet<>();
-
-
-
-    @Override
-    protected TreeSet<String> compute() {
-        List<CrawlSitePages> taskList=new ArrayList<>();
-        try {
-            sleep(1000);
-
-            Document doc = configuration.getDocument(url);
-            Elements elements = doc.select("a[href]");
-            for (Element el:elements){
-                String str = el.absUrl("href");
-                if (!isLink(str) && isFile(str)) {
-                        CrawlSitePages task = new CrawlSitePages(str);
-                        task.fork();
-                        taskList.add(task);
-                    }
-
-            }
-
-            for (CrawlSitePages task:taskList){
-                tr1.add(task.url);
-            }
-
-        }catch (Exception e){
-            e.printStackTrace();
-        }
-        return tr1;
-
-    }
-
-    private static boolean isLink(String link){
-        link.toLowerCase();
-        return link.contains(".jpg")||
-                link.contains(".jpeg")||
-                link.contains(".png")||
-                link.contains(".gif")||
-                link.contains(".webp")||
-                link.contains(".pdf")||
-                link.contains(".eps")||
-                link.contains(".xlsx")||
-                link.contains(".doc")||
-                link.contains(".pptx")||
-                link.contains(".docx")||
-                link.contains(".?_ga")||
-                link.contains("#");
-    }
-    private synchronized boolean isFile(String link){
-        link.toLowerCase();
-        return link.contains(url);
-    }*/
 
 }
 

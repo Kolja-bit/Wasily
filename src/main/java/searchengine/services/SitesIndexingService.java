@@ -128,39 +128,30 @@ public class SitesIndexingService implements IndexingService{
 
         List<Site> list = sitesList.getSites();
 
-
+        Thread thread=null;
         for (Site site : list) {
-            String siteUrl = site.getUrl();
+            thread=new Thread(()->{
+                String siteUrl = site.getUrl();
                 Sites sites = new Sites();
                 sites.setStatus(SiteIndexingStatus.INDEXING);
                 sites.setUrl(siteUrl);
                 sites.setName(site.getName());
                 sites.setStatusTime(LocalDateTime.now());
                 siteRepository.save(sites);
-
-                try {
-
-                        ForkJoinPool forkJoinPool = new ForkJoinPool(20);
-
-                        CrawlSitePages crawlSitePages = new CrawlSitePages(siteUrl, sites, siteRepository, pageRepository);
+                ForkJoinPool forkJoinPool = new ForkJoinPool(20);
+                CrawlSitePages crawlSitePages = new CrawlSitePages(siteUrl, sites, siteRepository, pageRepository);
+                forkJoinPool.invoke(crawlSitePages);
 
 
-                        forkJoinPool.invoke(crawlSitePages);
-
-                        log.info("aaaaa");
-
-
-                } catch (Exception e) {
-                    log.info("sleep interrupted");
-                    log.info(Thread.currentThread().getName());
-                    e.getMessage();
-
-                    return;
-                }
-
-            log.info("vvvvv");
-            log.info(Thread.currentThread().getName());
-
+                log.info("vvvvv");
+                log.info(Thread.currentThread().getName());
+            });
+            thread.start();
+        }
+        try {
+            thread.join();
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
         }
 
     }

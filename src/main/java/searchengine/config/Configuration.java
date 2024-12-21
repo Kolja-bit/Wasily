@@ -4,6 +4,7 @@ import lombok.SneakyThrows;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.springframework.stereotype.Component;
+import searchengine.model.Page;
 
 import java.awt.*;
 import java.awt.event.KeyEvent;
