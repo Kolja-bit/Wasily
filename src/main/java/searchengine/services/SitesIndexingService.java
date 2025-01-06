@@ -1,33 +1,24 @@
 package searchengine.services;
 
 import lombok.RequiredArgsConstructor;
-import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.http.HttpRequest;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import searchengine.config.Configuration;
 import searchengine.config.Site;
 import searchengine.config.SitesList;
-import searchengine.controllers.ApiController;
 import searchengine.error.IndexingResponse;
 import searchengine.model.Page;
 import searchengine.model.SiteIndexingStatus;
 import searchengine.model.Sites;
+import searchengine.repositories.LemmasRepository;
 import searchengine.repositories.PageRepository;
 import searchengine.repositories.SiteRepository;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.ForkJoinPool;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -36,14 +27,14 @@ import static java.lang.Thread.sleep;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class SitesIndexingService implements IndexingService{
+public class SitesIndexingService implements SitesIndexingServiceImpl {
     private final SiteRepository siteRepository;
     private final PageRepository pageRepository;
+    private final LemmasRepository lemmasRepository;
     private final SitesList sitesList;
     private final IndexingResponse response = new IndexingResponse();
     private final Configuration configuration=new Configuration();
 
-    private Lock lock= new ReentrantLock();
     public static volatile boolean control = false;
 
 
@@ -92,11 +83,14 @@ public class SitesIndexingService implements IndexingService{
     }
     @Override
     public IndexingResponse addUpdatePage(String url){
-        String[] p= url.split("/");
-        String url1=p[0]+"//"+p[2]+"/";
+        //String[] p= url.split("/");
+        //String url1=p[0]+"//"+p[2]+"/";
+        String url1=url.split("/")[0]+"//"+url.split("/")[2]+"/";
         Sites sites=siteRepository.findByUrl(url1).orElseThrow();
         String path = url.substring(url1.length() - 1);
-        if (pageRepository.existsByPathAndSite(path,sites)){
+        if (pageRepository.existsByPathAndSite(path,sites)){//ошибка нет добавления страницы
+            //есть только обновление страницы
+
             Integer pageId=pageRepository.findByPathAndSite(path,sites).get().getId();
             pageRepository.deleteById(pageId);
 
@@ -109,6 +103,9 @@ public class SitesIndexingService implements IndexingService{
                 page.setContent(doc.html());
                 page.setCode(doc.connection().response().statusCode());
                 pageRepository.save(page);
+                LemmasIndexingService lemmasIndexingService=new LemmasIndexingService(page.getContent(),
+                        sites, lemmasRepository);
+                lemmasIndexingService.recordLemmas();
 
             } catch (Exception e) {
                 e.printStackTrace();

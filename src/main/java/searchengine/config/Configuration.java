@@ -29,4 +29,9 @@ public class Configuration {
         robot.keyRelease(KeyEvent.VK_ENTER);
     }
 
+    /*<dependency>
+            <groupId>org.seleniumhq.selenium</groupId>
+            <artifactId>selenium-java</artifactId>
+            <version>4.19.1</version>
+        </dependency>*/
 }

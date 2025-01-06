@@ -86,10 +86,11 @@ public class CrawlSitePages extends RecursiveAction {
 
 
     }
-    private synchronized void indexingPage(String string,Sites site, Document document){
-        String path = string.substring(site.getUrl().length() - 1);
-        Page page=new Page();
+    private synchronized void indexingPage(String currentUrl,Sites site, Document document){
+        String path = currentUrl.substring(site.getUrl().length() - 1);
+        //Page page=new Page();
         try {
+            Page page=new Page();
             page.setPath(path);
             page.setSite(site);
             page.setContent(document.html());

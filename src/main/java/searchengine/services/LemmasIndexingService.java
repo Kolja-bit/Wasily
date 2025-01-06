@@ -3,8 +3,16 @@ package searchengine.services;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.lucene.morphology.LuceneMorphology;
+import org.apache.lucene.morphology.english.EnglishLuceneMorphology;
 import org.apache.lucene.morphology.russian.RussianLuceneMorphology;
 import org.jsoup.Jsoup;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Example;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.repository.query.FluentQuery;
+import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 import searchengine.model.Lemma;
 import searchengine.model.Sites;
@@ -13,63 +21,63 @@ import searchengine.repositories.LemmasRepository;
 import searchengine.repositories.PageRepository;
 import searchengine.repositories.SiteRepository;
 
+
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
+import java.util.function.Function;
 
 @Slf4j
-@Service
+//@Service
 @RequiredArgsConstructor
 public class LemmasIndexingService implements LemmasIndexingServiceImpl {
-    private final String url;
-    private final PageRepository pageRepository;
+    private final String stringHtml;
+    private final Sites sites;
+
+    private LuceneMorphology luceneMorph =null;
+
     private final LemmasRepository lemmasRepository;
-    private final IndexRepository indexRepository;
-    private final SiteRepository siteRepository;
-    private final static Set<String> SERVICE_PARTS_OF_SPEECH=Set.of("ПРЕДЛ","СОЮЗ","МЕЖД","МС-П","МС");
-    @Override
-    public String getHtml(){
-        String[] p= url.split("/");
-        String url1=p[0]+"//"+p[2]+"/";
-        Sites sites=siteRepository.findByUrl(url1).orElseThrow();
-        String path = url.substring(url1.length() - 1);
-        String html=pageRepository.findByPathAndSite(path,sites).get().getContent();
-        return html;
-    }
+    private final static Set<String> RUSSIAN_REGEX=Set.of("ПРЕДЛ","СОЮЗ","МЕЖД","МС-П","МС");
+    private final static Set<String> ENGLICH_REGEX=Set.of("ADJECTIVE","ARTICLE","PN_ADJ","PREP");
 
     public HashMap<String,Integer> getMapLemmas(){
-        String[]strings=getCleaningWebPageFromTags()
-                .replaceAll("[^A-Za-zА-Яа-я]+"," ").trim().split("\\s");
+        String[]strings=getWebPageContent().replaceAll("[^A-Za-zА-Яа-я]+"," ")
+                .trim().split("\\s");
         HashMap<String,Integer> mapLemma=new HashMap<>();
-        LuceneMorphology luceneMorph = null;
         for (String string:strings){
             String str=string.toLowerCase();
-            try {
-                luceneMorph = new RussianLuceneMorphology();
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
+            getLuceneMorph(str);
             List<String> list = luceneMorph.getMorphInfo(str);
-            if (!SERVICE_PARTS_OF_SPEECH.contains(list.get(0).split("\\s")[1])){
-                if (mapLemma.containsKey(luceneMorph.getNormalForms(str).get(0))){
-                    mapLemma.put(luceneMorph.getNormalForms(str).get(0),
-                            mapLemma.get(luceneMorph.getNormalForms(str).get(0))+1);
-                }else {
-                    mapLemma.put(luceneMorph.getNormalForms(str).get(0), 1);
+            if (!RUSSIAN_REGEX.contains(list.get(0).split("\\s")[1])){
+                if (!ENGLICH_REGEX.contains(list.get(0).split("\\s")[1])) {
+                    if (mapLemma.containsKey(luceneMorph.getNormalForms(str).get(0))) {
+                        mapLemma.put(luceneMorph.getNormalForms(str).get(0),
+                                mapLemma.get(luceneMorph.getNormalForms(str).get(0)) + 1);
+                    } else {
+                        mapLemma.put(luceneMorph.getNormalForms(str).get(0), 1);
+                    }
                 }
             }
         }
         return mapLemma;
     }
-    public String getCleaningWebPageFromTags(){
-        String str= Jsoup.parse(getHtml()).text();
+    public String getWebPageContent(){
+        String str= Jsoup.parse(stringHtml).text();
         return str;
+    }
+    public LuceneMorphology getLuceneMorph(String string){
+        try {
+            if(string.matches("\\w+")){
+                luceneMorph = new EnglishLuceneMorphology();
+            }else {
+                luceneMorph = new RussianLuceneMorphology();
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        return luceneMorph;
     }
     public void recordLemmas(){
         HashMap<String,Integer>hashMap=getMapLemmas();
-        Sites sites=siteRepository.findByUrl(url).orElseThrow();
         for (Map.Entry<String,Integer>entry: hashMap.entrySet()){
         Lemma lemma=new Lemma();
         lemma.setSite(sites);
@@ -78,6 +86,5 @@ public class LemmasIndexingService implements LemmasIndexingServiceImpl {
         lemmasRepository.save(lemma);
         }
     }
-
 
 }

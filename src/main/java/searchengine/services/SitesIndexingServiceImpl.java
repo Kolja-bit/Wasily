@@ -2,9 +2,11 @@ package searchengine.services;
 
 import searchengine.error.IndexingResponse;
 
-public interface IndexingService {
+public interface SitesIndexingServiceImpl {
     IndexingResponse getStartIndexingSites();
+
     IndexingResponse getStopIndexingSites();
+
     IndexingResponse addUpdatePage(String url);
 
 }

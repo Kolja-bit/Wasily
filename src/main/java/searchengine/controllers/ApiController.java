@@ -1,12 +1,11 @@
 package searchengine.controllers;
 
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import searchengine.dto.statistics.StatisticsResponse;
 import searchengine.error.IndexingResponse;
-import searchengine.services.IndexingService;
+import searchengine.services.SitesIndexingServiceImpl;
 import searchengine.services.StatisticsService;
 @Slf4j
 @RestController
@@ -14,10 +13,10 @@ import searchengine.services.StatisticsService;
 public class ApiController {
 
     private final StatisticsService statisticsService;
-    private final IndexingService indexingService ;
+    private final SitesIndexingServiceImpl indexingService ;
 
 
-    public ApiController(StatisticsService statisticsService,IndexingService indexingService) {
+    public ApiController(StatisticsService statisticsService, SitesIndexingServiceImpl indexingService) {
         this.statisticsService = statisticsService;
         this.indexingService=indexingService;
     }
