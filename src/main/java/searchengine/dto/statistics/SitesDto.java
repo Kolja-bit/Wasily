@@ -1,9 +1,8 @@
 package searchengine.dto.statistics;
 
-import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
-import searchengine.model.SiteIndexingStatus;
+import searchengine.model.SiteStatusModel;
 
 
 import java.time.LocalDateTime;
@@ -11,7 +10,7 @@ import java.time.LocalDateTime;
 @Setter
 public class SitesDto {
     private Integer id;
-    private SiteIndexingStatus status;
+    private SiteStatusModel status;
     private LocalDateTime statusTime;
     private String lastError;
     private String url;

@@ -5,7 +5,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import searchengine.dto.statistics.StatisticsResponse;
 import searchengine.error.IndexingResponse;
-import searchengine.services.SitesIndexingServiceImpl;
+import searchengine.services.SitesIndexingService;
 import searchengine.services.StatisticsService;
 @Slf4j
 @RestController
@@ -13,12 +13,13 @@ import searchengine.services.StatisticsService;
 public class ApiController {
 
     private final StatisticsService statisticsService;
-    private final SitesIndexingServiceImpl indexingService ;
+    private final SitesIndexingService indexingService;
 
 
-    public ApiController(StatisticsService statisticsService, SitesIndexingServiceImpl indexingService) {
+    public ApiController(StatisticsService statisticsService, SitesIndexingService indexingService) {
         this.statisticsService = statisticsService;
         this.indexingService=indexingService;
+
     }
 
 

@@ -2,21 +2,16 @@ package searchengine.services;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import searchengine.config.Site;
-import searchengine.config.SitesList;
-import searchengine.controllers.ApiController;
 import searchengine.dto.statistics.DetailedStatisticsItem;
 import searchengine.dto.statistics.StatisticsData;
 import searchengine.dto.statistics.StatisticsResponse;
 import searchengine.dto.statistics.TotalStatistics;
-import searchengine.model.Sites;
+import searchengine.model.SitesModel;
+import searchengine.repositories.LemmasRepository;
 import searchengine.repositories.PageRepository;
 import searchengine.repositories.SiteRepository;
 
-import java.time.ZoneOffset;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Random;
 import java.util.stream.Collectors;
 
 @Service
@@ -27,20 +22,20 @@ public class StatisticsServiceImpl implements StatisticsService {
     //private final SitesList sites;
     private final SiteRepository siteRepository;
     private final PageRepository pageRepository;
-    //private final LemmaRepository lemmaRepository;
+    private final LemmasRepository lemmaRepository;
     @Override
     public StatisticsResponse getStatistics() {
         StatisticsResponse response=new StatisticsResponse();
         StatisticsData statisticsData=new StatisticsData();
-        List<Sites> sites=siteRepository.findAll();
+        List<SitesModel> sites=siteRepository.findAll();
         int totalSites=sites.size();
         int totalPages=(int) pageRepository.count();
-        //int totalLemmas=(int) lemmaRepository.count();
+        int totalLemmas=(int) lemmaRepository.count();
         boolean indexinglnProgress=sites.stream().anyMatch(site ->site.getStatus().equals("INDEXING"));
         TotalStatistics total=new TotalStatistics();
         total.setSites(totalSites);
         total.setPages(totalPages);
-        //total.setLemmas(totalLemmas);
+        total.setLemmas(totalLemmas);
         total.setIndexing(indexinglnProgress);
         statisticsData.setTotal(total);
         List<DetailedStatisticsItem> detailedList= sites.stream()

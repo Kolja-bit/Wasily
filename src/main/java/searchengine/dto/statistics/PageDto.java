@@ -1,7 +1,6 @@
 package searchengine.dto.statistics;
 
 import lombok.Data;
-import searchengine.model.Sites;
 
 
 @Data

@@ -1,63 +1,67 @@
 package searchengine.services;
 
-import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
-import org.springframework.stereotype.Component;
 import searchengine.config.Configuration;
-import searchengine.model.Page;
-import searchengine.model.SiteIndexingStatus;
-import searchengine.model.Sites;
+import searchengine.model.PageModel;
+import searchengine.model.SiteStatusModel;
+import searchengine.model.SitesModel;
+import searchengine.repositories.IndexRepository;
+import searchengine.repositories.LemmasRepository;
 import searchengine.repositories.PageRepository;
 import searchengine.repositories.SiteRepository;
 
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.*;
-import java.util.concurrent.locks.ReentrantLock;
 
 import static java.lang.Thread.sleep;
 
 
-public class CrawlSitePages extends RecursiveAction {
+public class PagesIndexingServiceImpl extends RecursiveAction {
     private Configuration configuration=new Configuration();
     public static Set<String> uniqueURL = new HashSet<>();
 
     //public static String mySite="PlayBack.ru";
     private String url;
-    private Sites site;
+    private SitesModel site;
     private SiteRepository siteRepository;
     private PageRepository pageRepository;
+    private LemmasRepository lemmasRepository;
+    private IndexRepository indexRepository;
 
 
 
-    public CrawlSitePages(String url,Sites site,SiteRepository siteRepository,PageRepository pageRepository) {
+    public PagesIndexingServiceImpl(String url, SitesModel site, SiteRepository siteRepository, PageRepository pageRepository,
+                                    LemmasRepository lemmasRepository, IndexRepository indexRepository) {
         this.url = url;
         this.site=site;
         this.siteRepository=siteRepository;
         this.pageRepository=pageRepository;
+        this.lemmasRepository=lemmasRepository;
+        this.indexRepository=indexRepository;
     }
 
 
     @Override
     protected void compute() {
 
-            Set<CrawlSitePages> allTask = new HashSet<>();
+            Set<PagesIndexingServiceImpl> allTask = new HashSet<>();
             try {
                 sleep(1000);
                 Document doc = configuration.getDocument(url);
                 Elements links = doc.select("a[href]");
 
                 if (links.isEmpty()) {
-                    site.setStatus(SiteIndexingStatus.INDEXED);
+                    site.setStatus(SiteStatusModel.INDEXED);
                     site.setStatusTime(LocalDateTime.now());
                     site.setLastError("Индексация сайта окончена");
                     siteRepository.save(site);
                     return;
                 }
-                if (SitesIndexingService.control){
-                    site.setStatus(SiteIndexingStatus.FAILED);
+                if (SitesIndexingServiceImpl.control){
+                    site.setStatus(SiteStatusModel.FAILED);
                     site.setStatusTime(LocalDateTime.now());
                     site.setLastError("Индексация остановлена пользователем");
                     siteRepository.save(site);
@@ -68,7 +72,8 @@ public class CrawlSitePages extends RecursiveAction {
                     boolean add = uniqueURL.add(thisUrl);
                     if (add && thisUrl.contains(isMySite()) && !isLink(thisUrl)) {
                         indexingPage(thisUrl, site, doc);
-                        CrawlSitePages task = new CrawlSitePages(thisUrl, site, siteRepository, pageRepository);
+                        PagesIndexingServiceImpl task = new PagesIndexingServiceImpl(thisUrl, site, siteRepository,
+                                pageRepository,lemmasRepository,indexRepository);
                         task.fork();
                         allTask.add(task);
 
@@ -80,17 +85,17 @@ public class CrawlSitePages extends RecursiveAction {
                 ex.printStackTrace();
                 ex.getMessage();
             }
-            for (CrawlSitePages crawlSitePages : allTask) {
+            for (PagesIndexingServiceImpl crawlSitePages : allTask) {
                 crawlSitePages.join();
             }
 
 
     }
-    private synchronized void indexingPage(String currentUrl,Sites site, Document document){
+    public synchronized void indexingPage(String currentUrl, SitesModel site, Document document){
         String path = currentUrl.substring(site.getUrl().length() - 1);
-        //Page page=new Page();
         try {
-            Page page=new Page();
+            //sleep(1000);
+            PageModel page=new PageModel();
             page.setPath(path);
             page.setSite(site);
             page.setContent(document.html());
@@ -98,6 +103,11 @@ public class CrawlSitePages extends RecursiveAction {
             pageRepository.save(page);
             site.setStatusTime(LocalDateTime.now());
             siteRepository.save(site);
+
+            /*LemmasIndexingService lemmasIndexingService=new LemmasIndexingService(page.getContent(),
+                    site,page, lemmasRepository,indexRepository);
+            lemmasIndexingService.recordLemmas();*/
+
         }catch (Exception e){
             e.printStackTrace();
         }
