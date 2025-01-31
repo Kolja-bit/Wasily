@@ -178,6 +178,18 @@ public class SitesIndexingServiceImpl implements SitesIndexingService {
                         pageRepository,lemmasRepository,indexRepository);
                 forkJoinPool.invoke(crawlSitePages);
 
+                if (crawlSitePages.statusControlIndexed){
+                    sites.setStatus(SiteStatusModel.INDEXED);
+                    sites.setStatusTime(LocalDateTime.now());
+                    sites.setLastError("Индексация сайта окончена");
+                    siteRepository.save(sites);
+                }
+                if (crawlSitePages.statusControlFailed){
+                    sites.setStatus(SiteStatusModel.FAILED);
+                    sites.setStatusTime(LocalDateTime.now());
+                    sites.setLastError("Индексация остановлена пользователем");
+                    siteRepository.save(sites);
+                }
 
                 log.info("vvvvv");
                 log.info(Thread.currentThread().getName());
@@ -194,13 +206,14 @@ public class SitesIndexingServiceImpl implements SitesIndexingService {
 
     public  void deletePageModelIndexModelLemmaModel(PageModel pageModel,String path,SitesModel sitesModel){
         Integer pageId=pageModel.getId();
+        log.info(String.valueOf(pageId));
         List<IndexModel> listIndexModel=indexRepository.findAllByPageId(pageId);
 
         List<Integer>listIdIndexModel=listIndexModel
                 .stream()
                 .map(IndexModel::getId)
                 .collect(Collectors.toList());
-        HashMap<Integer,Long> mapLemmaIdRank=new HashMap<>();
+        /*HashMap<Integer,Long> mapLemmaIdRank=new HashMap<>();
         for (IndexModel indexModel:listIndexModel){
             mapLemmaIdRank.put(indexModel.getLemma().getId(),indexModel.getRank().longValue());
         }
@@ -209,12 +222,12 @@ public class SitesIndexingServiceImpl implements SitesIndexingService {
             Integer newFrequency=lemmaModel.getFrequency()-entry.getValue().intValue();
             lemmaModel.setFrequency(newFrequency);
             lemmasRepository.save(lemmaModel);
-        }
+        }*/
         if (!listIdIndexModel.isEmpty()) {
             indexRepository.deleteAllByIdInBatch(listIdIndexModel);
         }
-        pageRepository.delete(pageModel);
-        //pageRepository.deleteById(pageId);
+        //lemmasRepository.deleteAllInBatch();
+        pageRepository.deleteById(pageId);
         //pageRepository.deleteByPathAndSite(path,sitesModel);
     }
 }

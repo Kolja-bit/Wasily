@@ -1,11 +1,12 @@
 package searchengine.services;
 
+
+import lombok.extern.slf4j.Slf4j;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import searchengine.config.Configuration;
 import searchengine.model.PageModel;
-import searchengine.model.SiteStatusModel;
 import searchengine.model.SitesModel;
 import searchengine.repositories.IndexRepository;
 import searchengine.repositories.LemmasRepository;
@@ -13,12 +14,13 @@ import searchengine.repositories.PageRepository;
 import searchengine.repositories.SiteRepository;
 
 import java.time.LocalDateTime;
-import java.util.*;
-import java.util.concurrent.*;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.concurrent.RecursiveAction;
 
 import static java.lang.Thread.sleep;
 
-
+@Slf4j
 public class PagesIndexingServiceImpl extends RecursiveAction {
     private Configuration configuration=new Configuration();
     public static Set<String> uniqueURL = new HashSet<>();
@@ -30,6 +32,8 @@ public class PagesIndexingServiceImpl extends RecursiveAction {
     private PageRepository pageRepository;
     private LemmasRepository lemmasRepository;
     private IndexRepository indexRepository;
+    public static volatile boolean statusControlIndexed=false;
+    public static volatile boolean statusControlFailed=false;
 
 
 
@@ -54,17 +58,11 @@ public class PagesIndexingServiceImpl extends RecursiveAction {
                 Elements links = doc.select("a[href]");
 
                 if (links.isEmpty()) {
-                    site.setStatus(SiteStatusModel.INDEXED);
-                    site.setStatusTime(LocalDateTime.now());
-                    site.setLastError("Индексация сайта окончена");
-                    siteRepository.save(site);
+                    statusControlIndexed=true;
                     return;
                 }
                 if (SitesIndexingServiceImpl.control){
-                    site.setStatus(SiteStatusModel.FAILED);
-                    site.setStatusTime(LocalDateTime.now());
-                    site.setLastError("Индексация остановлена пользователем");
-                    siteRepository.save(site);
+                    statusControlFailed=true;
                     return;
                 }
                 for (Element element:links){
@@ -91,7 +89,8 @@ public class PagesIndexingServiceImpl extends RecursiveAction {
 
 
     }
-    public synchronized void indexingPage(String currentUrl, SitesModel site, Document document){
+
+    public synchronized void indexingPage(String currentUrl, SitesModel site, Document document) {
         String path = currentUrl.substring(site.getUrl().length() - 1);
         try {
             //sleep(1000);
@@ -101,16 +100,17 @@ public class PagesIndexingServiceImpl extends RecursiveAction {
             page.setContent(document.html());
             page.setCode(document.connection().response().statusCode());
             pageRepository.save(page);
-            site.setStatusTime(LocalDateTime.now());
-            siteRepository.save(site);
 
-            /*LemmasIndexingService lemmasIndexingService=new LemmasIndexingService(page.getContent(),
+            /*LemmasIndexingServiceImpl lemmasIndexingService=new LemmasIndexingServiceImpl(page.getContent(),
                     site,page, lemmasRepository,indexRepository);
             lemmasIndexingService.recordLemmas();*/
 
         }catch (Exception e){
             e.printStackTrace();
         }
+        //pageRepository.save(page);
+        site.setStatusTime(LocalDateTime.now());
+        siteRepository.save(site);
 
     }
     private synchronized String isMySite(){
@@ -141,5 +141,15 @@ public class PagesIndexingServiceImpl extends RecursiveAction {
 
 }
 
+/*select
+        s.id as site_id, s.name as site_name, s.url as site_url,
+        count(p.id) as page_count_by_site,
+        count(l.id) as lemma_count,
+        count(i.id) as index_count_by_page
+        from search_engine.site s
+        join search_engine.page p on p.site_id = s.id
+        left join search_engine.lemma l on l.site_id = s.id
+        left join search_engine.search_index i on i.page_id = p.id
+        group by s.id, s.url, s.name*/
 
 
