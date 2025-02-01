@@ -178,11 +178,12 @@ public class SitesIndexingServiceImpl implements SitesIndexingService {
                         pageRepository,lemmasRepository,indexRepository);
                 forkJoinPool.invoke(crawlSitePages);
 
-                if (crawlSitePages.statusControlIndexed){
+                if (crawlSitePages.statusControlIndexed && crawlSitePages.statusControlFailed==false){
                     sites.setStatus(SiteStatusModel.INDEXED);
                     sites.setStatusTime(LocalDateTime.now());
                     sites.setLastError("Индексация сайта окончена");
                     siteRepository.save(sites);
+                    configuration.getControl();
                 }
                 if (crawlSitePages.statusControlFailed){
                     sites.setStatus(SiteStatusModel.FAILED);
