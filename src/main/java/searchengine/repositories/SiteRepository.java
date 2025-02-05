@@ -9,6 +9,7 @@ import java.util.Optional;
 
 @Repository
 public interface SiteRepository extends JpaRepository<SitesModel, Integer> {
+    boolean existsByUrlAndStatus(String str,SiteStatusModel s);
     Optional<SitesModel> findByUrl(String s);
     boolean existsByStatus(SiteStatusModel s);
     boolean existsByUrl(String s);

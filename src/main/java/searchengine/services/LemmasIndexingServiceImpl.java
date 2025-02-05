@@ -66,27 +66,41 @@ public class LemmasIndexingServiceImpl implements LemmasIndexingService {
         return luceneMorph;
     }
     public void recordLemmas(){
+
             HashMap<String, Integer> hashMap = getMapLemmas();
             for (Map.Entry<String, Integer> entry : hashMap.entrySet()) {
+
                 LemmaModel lemma = new LemmaModel();
+                IndexModel index=new IndexModel();
+                if (!lemmasRepository.existsBySiteAndLemma(sites,entry.getKey())){
+                    //LemmaModel lemma = new LemmaModel();
+                    lemma.setSite(sites);
+                    lemma.setLemma(entry.getKey());
+                    lemma.setFrequency((entry.getValue()));
+                    lemmasRepository.save(lemma);
 
-                lemma.setSite(sites);
-                lemma.setLemma(entry.getKey());
-                //int frequencyLemma=;
-                lemma.setFrequency(2);//то число просто так
-                IndexModel index = new IndexModel();
-                index.setLemma(lemma);
-                index.setPage(page);
-                index.setRank(Float.valueOf((entry.getValue())));
-                indexRepository.save(index);
-                lemmasRepository.save(lemma);
+                    //IndexModel index=new IndexModel();
+                    index.setLemma(lemma);
+                    index.setPage(page);
+                    index.setRank(Float.valueOf((entry.getValue())));
+                    indexRepository.save(index);
+                }else {
+                    //LemmaModel lemma = new LemmaModel();
+                    LemmaModel lemmaModel1=lemmasRepository.findBySiteAndLemma(sites,entry.getKey()).get();
+                    Integer lemmaModelId=lemmaModel1.getId();
+                    lemma.setId(lemmaModelId);
+                    lemma.setSite(sites);
+                    lemma.setLemma(entry.getKey());
+                    int repetitionOfLemmasOnSite=lemmaModel1.getFrequency()+entry.getValue();
+                    lemma.setFrequency(repetitionOfLemmasOnSite);
+                    lemmasRepository.save(lemma);
 
-
-        /*IndexModel index=new IndexModel();
-        index.setLemma(lemma);
-        index.setPage(page);
-        index.setRank(Float.valueOf((entry.getValue())));
-        indexRepository.save(index);*/
+                    //IndexModel index=new IndexModel();
+                    index.setLemma(lemma);
+                    index.setPage(page);
+                    index.setRank(Float.valueOf((entry.getValue())));
+                    indexRepository.save(index);
+                }
             }
 
         //log.info(String.valueOf(setLemmaId));

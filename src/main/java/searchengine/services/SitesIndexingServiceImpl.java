@@ -84,8 +84,6 @@ public class SitesIndexingServiceImpl implements SitesIndexingService {
     }
     @Override
     public IndexingResponse addUpdatePage(String url){
-        //String[] p= url.split("/");
-        //String url1=p[0]+"//"+p[2]+"/";
         String url1=url.split("/")[0]+"//"+url.split("/")[2]+"/";
         SitesModel sites=siteRepository.findByUrl(url1).orElseThrow();
         String path = url.substring(url1.length() - 1);

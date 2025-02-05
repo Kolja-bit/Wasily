@@ -24,8 +24,6 @@ import static java.lang.Thread.sleep;
 public class PagesIndexingServiceImpl extends RecursiveAction {
     private Configuration configuration=new Configuration();
     public static Set<String> uniqueURL = new HashSet<>();
-
-    //public static String mySite="PlayBack.ru";
     private String url;
     private SitesModel site;
     private SiteRepository siteRepository;
@@ -91,26 +89,30 @@ public class PagesIndexingServiceImpl extends RecursiveAction {
     }
 
     public synchronized void indexingPage(String currentUrl, SitesModel site, Document document) {
-        String path = currentUrl.substring(site.getUrl().length() - 1);
-        try {
-            //sleep(1000);
-            PageModel page=new PageModel();
-            page.setPath(path);
-            page.setSite(site);
-            page.setContent(document.html());
-            page.setCode(document.connection().response().statusCode());
-            pageRepository.save(page);
+        //synchronized (site) {
+            String path = currentUrl.substring(site.getUrl().length() - 1);
+            try {
+                //sleep(1000);
+                PageModel page = new PageModel();
+                page.setPath(path);
+                page.setSite(site);
+                page.setContent(document.html());
+                page.setCode(document.connection().response().statusCode());
 
-            /*LemmasIndexingServiceImpl lemmasIndexingService=new LemmasIndexingServiceImpl(page.getContent(),
-                    site,page, lemmasRepository,indexRepository);
-            lemmasIndexingService.recordLemmas();*/
+                pageRepository.save(page);
 
-        }catch (Exception e){
-            e.printStackTrace();
-        }
-        //pageRepository.save(page);
-        site.setStatusTime(LocalDateTime.now());
-        siteRepository.save(site);
+                LemmasIndexingServiceImpl lemmasIndexingService = new LemmasIndexingServiceImpl(page.getContent(),
+                        site, page, lemmasRepository, indexRepository);
+                lemmasIndexingService.recordLemmas();
+
+
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            //pageRepository.save(page);
+            site.setStatusTime(LocalDateTime.now());
+            siteRepository.save(site);
+        //}
 
     }
     private synchronized String isMySite(){
