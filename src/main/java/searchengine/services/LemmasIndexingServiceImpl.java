@@ -70,16 +70,16 @@ public class LemmasIndexingServiceImpl implements LemmasIndexingService {
             HashMap<String, Integer> hashMap = getMapLemmas();
             for (Map.Entry<String, Integer> entry : hashMap.entrySet()) {
 
-                LemmaModel lemma = new LemmaModel();
-                IndexModel index=new IndexModel();
+                //LemmaModel lemma = new LemmaModel();
+                //IndexModel index=new IndexModel();
                 if (!lemmasRepository.existsBySiteAndLemma(sites,entry.getKey())){
-                    //LemmaModel lemma = new LemmaModel();
+                    LemmaModel lemma = new LemmaModel();
                     lemma.setSite(sites);
                     lemma.setLemma(entry.getKey());
                     lemma.setFrequency((entry.getValue()));
                     lemmasRepository.save(lemma);
 
-                    //IndexModel index=new IndexModel();
+                    IndexModel index=new IndexModel();
                     index.setLemma(lemma);
                     index.setPage(page);
                     index.setRank(Float.valueOf((entry.getValue())));
@@ -87,16 +87,18 @@ public class LemmasIndexingServiceImpl implements LemmasIndexingService {
                 }else {
                     //LemmaModel lemma = new LemmaModel();
                     LemmaModel lemmaModel1=lemmasRepository.findBySiteAndLemma(sites,entry.getKey()).get();
-                    Integer lemmaModelId=lemmaModel1.getId();
+                    /*Integer lemmaModelId=lemmaModel1.getId();
                     lemma.setId(lemmaModelId);
                     lemma.setSite(sites);
-                    lemma.setLemma(entry.getKey());
+                    lemma.setLemma(entry.getKey());*/
                     int repetitionOfLemmasOnSite=lemmaModel1.getFrequency()+entry.getValue();
-                    lemma.setFrequency(repetitionOfLemmasOnSite);
-                    lemmasRepository.save(lemma);
+                    lemmaModel1.setFrequency(repetitionOfLemmasOnSite);
+                    lemmasRepository.save(lemmaModel1);
+                    //lemma.setFrequency(repetitionOfLemmasOnSite);
+                    //lemmasRepository.save(lemma);
 
-                    //IndexModel index=new IndexModel();
-                    index.setLemma(lemma);
+                    IndexModel index=new IndexModel();
+                    index.setLemma(lemmaModel1);
                     index.setPage(page);
                     index.setRank(Float.valueOf((entry.getValue())));
                     indexRepository.save(index);

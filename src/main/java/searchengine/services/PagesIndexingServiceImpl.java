@@ -101,9 +101,11 @@ public class PagesIndexingServiceImpl extends RecursiveAction {
 
                 pageRepository.save(page);
 
-                LemmasIndexingServiceImpl lemmasIndexingService = new LemmasIndexingServiceImpl(page.getContent(),
-                        site, page, lemmasRepository, indexRepository);
-                lemmasIndexingService.recordLemmas();
+                synchronized (page) {
+                    LemmasIndexingServiceImpl lemmasIndexingService = new LemmasIndexingServiceImpl(page.getContent(),
+                            site, page, lemmasRepository, indexRepository);
+                    lemmasIndexingService.recordLemmas();
+                }
 
 
             } catch (Exception e) {

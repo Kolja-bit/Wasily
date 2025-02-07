@@ -8,17 +8,16 @@ import searchengine.config.Configuration;
 import searchengine.config.Site;
 import searchengine.config.SitesList;
 import searchengine.error.IndexingResponse;
-import searchengine.model.IndexModel;
-import searchengine.model.PageModel;
-import searchengine.model.SiteStatusModel;
-import searchengine.model.SitesModel;
+import searchengine.model.*;
 import searchengine.repositories.IndexRepository;
 import searchengine.repositories.LemmasRepository;
 import searchengine.repositories.PageRepository;
 import searchengine.repositories.SiteRepository;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ForkJoinPool;
 import java.util.stream.Collectors;
 
@@ -91,44 +90,7 @@ public class SitesIndexingServiceImpl implements SitesIndexingService {
         if (siteRepository.existsByUrl(url1)){
             if (pageRepository.existsByPathAndSite(path,sites)) {
                 deletePageModelIndexModelLemmaModel(pageModel,path,sites);
-
-                //Integer pageId=pageModel.getId();
-                //List<IndexModel> listIndexModel=indexRepository.findAllByPageId(pageId);
-
-
-                /*HashMap<Integer,Long> mapLemmaIdRank=new HashMap<>();
-                for (IndexModel indexModel:listIndexModel){
-                    mapLemmaIdRank.put(indexModel.getLemma().getId(),indexModel.getRank().longValue());
-                }
-                for (Map.Entry<Integer,Long>entry: mapLemmaIdRank.entrySet()){
-                    LemmaModel lemmaModel=lemmasRepository.findById(entry.getKey()).get();
-                    Integer newFrequency=lemmaModel.getFrequency()-entry.getValue().intValue();
-                    lemmaModel.setFrequency(newFrequency);
-                    lemmasRepository.save(lemmaModel);
-                }*/
-
-                /*List<Integer>listIdIndexModel=listIndexModel
-                        .stream()
-                        .map(IndexModel::getId)
-                        .collect(Collectors.toList());
-
-                    if (!listIdIndexModel.isEmpty()) {
-                        indexRepository.deleteAllByIdInBatch(listIdIndexModel);
-                    }
-
-                pageRepository.deleteById(pageId);*/
-
-                /*pageRepository.save(pageModel);
-                    LemmasIndexingServiceImpl lemmasIndexingService=new LemmasIndexingServiceImpl(pageModel.getContent(),
-                            sites,pageModel, lemmasRepository,indexRepository);
-                    lemmasIndexingService.recordLemmas();*/
-
-
             }
-            /*PagesIndexingService crawlSitePages = new PagesIndexingService(url1, sites, siteRepository,
-                    pageRepository,lemmasRepository,indexRepository);
-            crawlSitePages.indexingPage(url,sites,configuration.getDocument(url));*/
-
                 try {
                     sleep(1000);
                     Document doc = configuration.getDocument(url);
@@ -205,28 +167,27 @@ public class SitesIndexingServiceImpl implements SitesIndexingService {
 
     public  void deletePageModelIndexModelLemmaModel(PageModel pageModel,String path,SitesModel sitesModel){
         Integer pageId=pageModel.getId();
-        log.info(String.valueOf(pageId));
         List<IndexModel> listIndexModel=indexRepository.findAllByPageId(pageId);
-
         List<Integer>listIdIndexModel=listIndexModel
                 .stream()
                 .map(IndexModel::getId)
                 .collect(Collectors.toList());
-        /*HashMap<Integer,Long> mapLemmaIdRank=new HashMap<>();
+
+        HashMap<Integer,Long> mapLemmaIdRank=new HashMap<>();
         for (IndexModel indexModel:listIndexModel){
             mapLemmaIdRank.put(indexModel.getLemma().getId(),indexModel.getRank().longValue());
         }
+
+        if (!listIdIndexModel.isEmpty()) {
+            indexRepository.deleteAllByIdInBatch(listIdIndexModel);
+        }
+
         for (Map.Entry<Integer,Long>entry: mapLemmaIdRank.entrySet()){
             LemmaModel lemmaModel=lemmasRepository.findById(entry.getKey()).get();
             Integer newFrequency=lemmaModel.getFrequency()-entry.getValue().intValue();
             lemmaModel.setFrequency(newFrequency);
             lemmasRepository.save(lemmaModel);
-        }*/
-        if (!listIdIndexModel.isEmpty()) {
-            indexRepository.deleteAllByIdInBatch(listIdIndexModel);
         }
-        //lemmasRepository.deleteAllInBatch();
         pageRepository.deleteById(pageId);
-        //pageRepository.deleteByPathAndSite(path,sitesModel);
     }
 }
