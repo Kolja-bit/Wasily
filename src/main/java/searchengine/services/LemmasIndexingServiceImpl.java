@@ -18,7 +18,7 @@ import java.util.*;
 
 @Slf4j
 @RequiredArgsConstructor
-public class LemmasIndexingServiceImpl implements LemmasIndexingService {
+public class LemmasIndexingServiceImpl {
     private final String stringHtml;
     private final SitesModel sites;
     private final PageModel page;
@@ -69,33 +69,24 @@ public class LemmasIndexingServiceImpl implements LemmasIndexingService {
 
             HashMap<String, Integer> hashMap = getMapLemmas();
             for (Map.Entry<String, Integer> entry : hashMap.entrySet()) {
-
-                //LemmaModel lemma = new LemmaModel();
-                //IndexModel index=new IndexModel();
                 if (!lemmasRepository.existsBySiteAndLemma(sites,entry.getKey())){
+
                     LemmaModel lemma = new LemmaModel();
                     lemma.setSite(sites);
                     lemma.setLemma(entry.getKey());
                     lemma.setFrequency((entry.getValue()));
                     lemmasRepository.save(lemma);
 
-                    IndexModel index=new IndexModel();
+                    IndexModel index = new IndexModel();
                     index.setLemma(lemma);
                     index.setPage(page);
                     index.setRank(Float.valueOf((entry.getValue())));
                     indexRepository.save(index);
                 }else {
-                    //LemmaModel lemma = new LemmaModel();
                     LemmaModel lemmaModel1=lemmasRepository.findBySiteAndLemma(sites,entry.getKey()).get();
-                    /*Integer lemmaModelId=lemmaModel1.getId();
-                    lemma.setId(lemmaModelId);
-                    lemma.setSite(sites);
-                    lemma.setLemma(entry.getKey());*/
                     int repetitionOfLemmasOnSite=lemmaModel1.getFrequency()+entry.getValue();
                     lemmaModel1.setFrequency(repetitionOfLemmasOnSite);
                     lemmasRepository.save(lemmaModel1);
-                    //lemma.setFrequency(repetitionOfLemmasOnSite);
-                    //lemmasRepository.save(lemma);
 
                     IndexModel index=new IndexModel();
                     index.setLemma(lemmaModel1);
@@ -104,8 +95,6 @@ public class LemmasIndexingServiceImpl implements LemmasIndexingService {
                     indexRepository.save(index);
                 }
             }
-
-        //log.info(String.valueOf(setLemmaId));
     }
     public List<String> getListContext(){
         List<String> stringList=new ArrayList<>();

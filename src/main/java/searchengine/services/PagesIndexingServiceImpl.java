@@ -89,7 +89,6 @@ public class PagesIndexingServiceImpl extends RecursiveAction {
     }
 
     public synchronized void indexingPage(String currentUrl, SitesModel site, Document document) {
-        //synchronized (site) {
             String path = currentUrl.substring(site.getUrl().length() - 1);
             try {
                 //sleep(1000);
@@ -101,6 +100,7 @@ public class PagesIndexingServiceImpl extends RecursiveAction {
 
                 pageRepository.save(page);
 
+
                 synchronized (page) {
                     LemmasIndexingServiceImpl lemmasIndexingService = new LemmasIndexingServiceImpl(page.getContent(),
                             site, page, lemmasRepository, indexRepository);
@@ -111,10 +111,10 @@ public class PagesIndexingServiceImpl extends RecursiveAction {
             } catch (Exception e) {
                 e.printStackTrace();
             }
-            //pageRepository.save(page);
+
             site.setStatusTime(LocalDateTime.now());
             siteRepository.save(site);
-        //}
+
 
     }
     private synchronized String isMySite(){
