@@ -16,14 +16,17 @@ import searchengine.repositories.SiteRepository;
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.RecursiveAction;
 
 import static java.lang.Thread.sleep;
 
 @Slf4j
 public class PagesIndexingServiceImpl extends RecursiveAction {
+    //public class PagesIndexingServiceImpl  {
     private Configuration configuration=new Configuration();
-    public static Set<String> uniqueURL = new HashSet<>();
+    //public static Set<String> uniqueURL = new HashSet<>();
+    public static Set<String> uniqueURL = new CopyOnWriteArraySet<>();
     private String url;
     private SitesModel site;
     private SiteRepository siteRepository;
@@ -67,7 +70,7 @@ public class PagesIndexingServiceImpl extends RecursiveAction {
                     String thisUrl=element.absUrl("href");
                     boolean add = uniqueURL.add(thisUrl);
                     if (add && thisUrl.contains(isMySite()) && !isLink(thisUrl)) {
-                        indexingPage(thisUrl, site, doc);
+                            indexingPage(thisUrl, site);
                         PagesIndexingServiceImpl task = new PagesIndexingServiceImpl(thisUrl, site, siteRepository,
                                 pageRepository,lemmasRepository,indexRepository);
                         task.fork();
@@ -85,36 +88,33 @@ public class PagesIndexingServiceImpl extends RecursiveAction {
                 crawlSitePages.join();
             }
 
-
     }
 
-    public synchronized void indexingPage(String currentUrl, SitesModel site, Document document) {
+        public synchronized void indexingPage(String currentUrl, SitesModel site) {
             String path = currentUrl.substring(site.getUrl().length() - 1);
-            try {
-                //sleep(1000);
-                PageModel page = new PageModel();
-                page.setPath(path);
-                page.setSite(site);
-                page.setContent(document.html());
-                page.setCode(document.connection().response().statusCode());
+                if (!pageRepository.existsByPathAndSite(path, site)) {
+                    try {
+                        //sleep(1000);
+                        PageModel page = new PageModel();
+                        page.setPath(path);
+                        page.setSite(site);
+                        page.setContent(configuration.getDocument(currentUrl).html());
+                        page.setCode(configuration.getDocument(currentUrl).connection().response().statusCode());
+                        pageRepository.save(page);
+                        log.info(String.valueOf(page.getPath()));
 
-                pageRepository.save(page);
+                        LemmasIndexingServiceImpl lemmasIndexingService =
+                                new LemmasIndexingServiceImpl(page,lemmasRepository,indexRepository);
+                        lemmasIndexingService.recordLemmas();
 
 
-                synchronized (page) {
-                    LemmasIndexingServiceImpl lemmasIndexingService = new LemmasIndexingServiceImpl(page.getContent(),
-                            site, page, lemmasRepository, indexRepository);
-                    lemmasIndexingService.recordLemmas();
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+
+                    site.setStatusTime(LocalDateTime.now());
+                    siteRepository.save(site);
                 }
-
-
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-
-            site.setStatusTime(LocalDateTime.now());
-            siteRepository.save(site);
-
 
     }
     private synchronized String isMySite(){

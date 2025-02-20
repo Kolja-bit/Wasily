@@ -17,10 +17,10 @@ spring:
 
 indexing-settings:
   sites:
-    - url: https://sochiparkhotel.ru/
-      name: sochiparkhotel
     - url: https://PlayBack.ru/
       name: PlayBack
+    - url: https://sochiparkhotel.ru/
+      name: sochiparkhotel
 
 
 

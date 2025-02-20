@@ -100,8 +100,9 @@ public class SitesIndexingServiceImpl implements SitesIndexingService {
                 page.setContent(doc.html());
                 page.setCode(doc.connection().response().statusCode());
                 pageRepository.save(page);
-                LemmasIndexingServiceImpl lemmasIndexingService=new LemmasIndexingServiceImpl(page.getContent(),
-                        sites,page, lemmasRepository,indexRepository);
+
+                LemmasIndexingServiceImpl lemmasIndexingService=new LemmasIndexingServiceImpl(page,
+                        lemmasRepository,indexRepository);
                 lemmasIndexingService.recordLemmas();
 
                 } catch (Exception e) {
@@ -122,7 +123,6 @@ public class SitesIndexingServiceImpl implements SitesIndexingService {
     public void indexingSite() {
 
         List<Site> list = sitesList.getSites();
-
         Thread thread=null;
         for (Site site : list) {
             thread=new Thread(()->{
