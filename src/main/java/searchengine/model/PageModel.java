@@ -27,14 +27,13 @@ import javax.persistence.*;
     @Column(nullable = false)
     private Integer code;
     @Column(columnDefinition = "MEDIUMTEXT",nullable = false)
-    private volatile String content;
+    private String content;
     @Column(columnDefinition = "VARCHAR(250)", nullable = false)
     private String path;
 
 
     /*@Override
     public int compareTo(PageModel o) {
-        //return getPath().compareTo(o.getPath());
-        return getContent().compareTo(o.getContent());
+        return getPath().compareTo(o.getPath());
     }*/
 }

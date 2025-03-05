@@ -2,10 +2,13 @@ package searchengine.services;
 
 
 import lombok.extern.slf4j.Slf4j;
+import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import searchengine.config.Configuration;
+import searchengine.model.IndexModel;
+import searchengine.model.LemmaModel;
 import searchengine.model.PageModel;
 import searchengine.model.SitesModel;
 import searchengine.repositories.IndexRepository;
@@ -14,19 +17,18 @@ import searchengine.repositories.PageRepository;
 import searchengine.repositories.SiteRepository;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.RecursiveAction;
 
 import static java.lang.Thread.sleep;
 
 @Slf4j
 public class PagesIndexingServiceImpl extends RecursiveAction {
-    //public class PagesIndexingServiceImpl  {
     private Configuration configuration=new Configuration();
-    //public static Set<String> uniqueURL = new HashSet<>();
-    public static Set<String> uniqueURL = new CopyOnWriteArraySet<>();
+    public static Set<String> uniqueURL = new HashSet<>();
     private String url;
     private SitesModel site;
     private SiteRepository siteRepository;
@@ -70,7 +72,7 @@ public class PagesIndexingServiceImpl extends RecursiveAction {
                     String thisUrl=element.absUrl("href");
                     boolean add = uniqueURL.add(thisUrl);
                     if (add && thisUrl.contains(isMySite()) && !isLink(thisUrl)) {
-                            indexingPage(thisUrl, site);
+                        indexingPage(thisUrl, site);
                         PagesIndexingServiceImpl task = new PagesIndexingServiceImpl(thisUrl, site, siteRepository,
                                 pageRepository,lemmasRepository,indexRepository);
                         task.fork();
@@ -88,34 +90,63 @@ public class PagesIndexingServiceImpl extends RecursiveAction {
                 crawlSitePages.join();
             }
 
+
     }
 
-        public synchronized void indexingPage(String currentUrl, SitesModel site) {
+    public synchronized void indexingPage(String currentUrl, SitesModel site) {
             String path = currentUrl.substring(site.getUrl().length() - 1);
-                if (!pageRepository.existsByPathAndSite(path, site)) {
-                    try {
-                        //sleep(1000);
-                        PageModel page = new PageModel();
-                        page.setPath(path);
-                        page.setSite(site);
-                        page.setContent(configuration.getDocument(currentUrl).html());
-                        page.setCode(configuration.getDocument(currentUrl).connection().response().statusCode());
-                        pageRepository.save(page);
-                        log.info(String.valueOf(page.getPath()));
+            try {
+                //sleep(1000);
+                PageModel page = new PageModel();
+                page.setPath(path);
+                page.setSite(site);
+                page.setContent(configuration.getDocument(currentUrl).html());
+                page.setCode(configuration.getDocument(currentUrl).connection().response().statusCode());
+                pageRepository.save(page);
 
-                        LemmasIndexingServiceImpl lemmasIndexingService =
-                                new LemmasIndexingServiceImpl(page,lemmasRepository,indexRepository);
-                        lemmasIndexingService.recordLemmas();
+                LemmasIndexingServiceImpl lemmasIndexingService =
+                        new LemmasIndexingServiceImpl(Jsoup.parse(page.getContent()).text());
+                recordLemmas(lemmasIndexingService.getMapLemmas(),site,page);
+
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+
+            site.setStatusTime(LocalDateTime.now());
+            siteRepository.save(site);
 
 
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
+    }
+    public void recordLemmas(HashMap<String, Integer> hashMap,SitesModel sites,PageModel page){
 
-                    site.setStatusTime(LocalDateTime.now());
-                    siteRepository.save(site);
-                }
+        //HashMap<String, Integer> hashMap = getMapLemmas();
+        for (Map.Entry<String, Integer> entry : hashMap.entrySet()) {
+            if (!lemmasRepository.existsBySiteAndLemma(sites,entry.getKey())){
 
+                LemmaModel lemma = new LemmaModel();
+                lemma.setSite(sites);
+                lemma.setLemma(entry.getKey());
+                lemma.setFrequency((entry.getValue()));
+                lemmasRepository.save(lemma);
+
+                IndexModel index = new IndexModel();
+                index.setLemma(lemma);
+                index.setPage(page);
+                index.setRank(Float.valueOf((entry.getValue())));
+                indexRepository.save(index);
+            }else {
+                LemmaModel lemmaModel1=lemmasRepository.findBySiteAndLemma(sites,entry.getKey()).get();
+                int repetitionOfLemmasOnSite=lemmaModel1.getFrequency()+entry.getValue();
+                lemmaModel1.setFrequency(repetitionOfLemmasOnSite);
+                lemmasRepository.save(lemmaModel1);
+
+                IndexModel index=new IndexModel();
+                index.setLemma(lemmaModel1);
+                index.setPage(page);
+                index.setRank(Float.valueOf((entry.getValue())));
+                indexRepository.save(index);
+            }
+        }
     }
     private synchronized String isMySite(){
         String[] p= url.split("/");

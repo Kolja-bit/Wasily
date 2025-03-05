@@ -13,7 +13,6 @@ public interface PageRepository extends JpaRepository<PageModel,Integer> {
     int countPageBySite(SitesModel s);
     Optional<PageModel> findByPathAndSite(String s, SitesModel s1);
     boolean existsByPathAndSite(String s, SitesModel s1);
-    boolean existsByContentAndSite(String s, SitesModel s1);
 
 
     int countBySite(SitesModel site);

@@ -2,7 +2,6 @@ package searchengine.services;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.jsoup.nodes.Document;
 import org.springframework.stereotype.Service;
 import searchengine.config.Configuration;
 import searchengine.config.Site;
@@ -20,8 +19,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ForkJoinPool;
 import java.util.stream.Collectors;
-
-import static java.lang.Thread.sleep;
 
 @Slf4j
 @Service
@@ -92,7 +89,10 @@ public class SitesIndexingServiceImpl implements SitesIndexingService {
                 deletePageModelIndexModelLemmaModel(pageModel,path,sites);
             }
                 try {
-                    sleep(1000);
+                    PagesIndexingServiceImpl pagesIndexingService=new PagesIndexingServiceImpl(url,
+                            sites,siteRepository,pageRepository,lemmasRepository,indexRepository);
+                    pagesIndexingService.indexingPage(url,sites);
+                    /*sleep(1000);
                     Document doc = configuration.getDocument(url);
                 PageModel page=new PageModel();
                 page.setPath(path);
@@ -100,10 +100,11 @@ public class SitesIndexingServiceImpl implements SitesIndexingService {
                 page.setContent(doc.html());
                 page.setCode(doc.connection().response().statusCode());
                 pageRepository.save(page);
-
-                LemmasIndexingServiceImpl lemmasIndexingService=new LemmasIndexingServiceImpl(page,
-                        lemmasRepository,indexRepository);
-                lemmasIndexingService.recordLemmas();
+                PagesIndexingServiceImpl pagesIndexingService=new PagesIndexingServiceImpl(url,
+                        sites,siteRepository,pageRepository,lemmasRepository,indexRepository);
+                LemmasIndexingServiceImpl lemmasIndexingService=
+                        new LemmasIndexingServiceImpl(Jsoup.parse(page.getContent()).text());
+                pagesIndexingService.recordLemmas();*/
 
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -123,6 +124,7 @@ public class SitesIndexingServiceImpl implements SitesIndexingService {
     public void indexingSite() {
 
         List<Site> list = sitesList.getSites();
+
         Thread thread=null;
         for (Site site : list) {
             thread=new Thread(()->{
