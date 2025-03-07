@@ -15,9 +15,8 @@ import searchengine.repositories.LemmasRepository;
 import searchengine.repositories.PageRepository;
 import searchengine.repositories.SiteRepository;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -35,24 +34,61 @@ public class SearchServiceImpl implements SearchService{
             response.setResult(false);
             response.setError("Задан пустой поисковый запрос");
         }else {
+            // лист лемм по запросу
             LemmasIndexingServiceImpl lemmasIndexingService=
                     new LemmasIndexingServiceImpl(query);
             List<String> uniqueListLemmas=lemmasIndexingService.getListLemmas();
             SitesModel sitesModel=siteRepository.findByUrl(stringUrl).get();
             String urlSite=stringUrl.substring(0,stringUrl.length()-1);
             String nameSite=sitesModel.getName();
-            List<PageModel> listPageByLemmaId=new ArrayList<>();
+            int numberOfPagesOnSite=pageRepository.countPageBySite(sitesModel);
+            Map<String,List<IndexModel>> hashMap=new HashMap<>();
             for (String lemma:uniqueListLemmas){
                 if (lemmasRepository.findBySiteAndLemma(sitesModel,lemma).isPresent()) {
                     LemmaModel lemmaModel = lemmasRepository.findBySiteAndLemma(sitesModel, lemma).get();
                     Integer lemmaId=lemmaModel.getId();
-                    IndexModel indexModel=indexRepository.findByLemmaId(lemmaId).get();
-                    PageModel pageByLemmaId=indexModel.getPage();
-                    listPageByLemmaId.add(pageByLemmaId);
+                    List<IndexModel> indexModelByLemma = indexRepository.findAllByLemmaId(lemmaId);
+                    hashMap.put(lemma,indexModelByLemma);
                 }else {
                     String s="слово "+lemma+" отсутствует на страницах сайта "+nameSite;
                 }
             }
+            //оптимальный не сортированный лист лемм с удалением наибольшего количества страниц
+            List<String> optimalListLemmas=new ArrayList<>();
+            List<LemmaModel> optimalListLemmaModel=new ArrayList<>();
+            for (Map.Entry<String,List<IndexModel>> entry:hashMap.entrySet()){
+                int maxNumberOfPagesWithLemma =entry.getValue().size();
+                int optimalCountPage=numberOfPagesOnSite-maxNumberOfPagesWithLemma;
+                if (optimalCountPage<=20){
+                    optimalListLemmaModel.add(lemmasRepository.findByLemma(entry.getKey()).get());
+                }
+            }
+            // оптимальный сортированный лист лемм
+            List<LemmaModel> optimalSortedListLemmaModel = optimalListLemmaModel.stream()
+                    .sorted(Comparator.comparing(LemmaModel::getFrequency))
+                    .collect(Collectors.toList());
+            // поиск страниц по первой самой редкой лемме
+            Integer idLemma=optimalSortedListLemmaModel.get(0).getId();
+            List<PageModel> listPageModelId =indexRepository.findAllByLemmaId(idLemma)
+                    .stream()
+                    .map(IndexModel::getPage)
+                    .collect(Collectors.toList());
+            for (int i=1;i<optimalSortedListLemmaModel.size();i++){
+                Integer idLemma1=optimalSortedListLemmaModel.get(i).getId();
+                List<PageModel> listPageModelId1 =indexRepository.findAllByLemmaId(idLemma1)
+                        .stream()
+                        .map(IndexModel::getPage)
+                        .collect(Collectors.toList());
+                listPageModelId.removeAll(listPageModelId1);
+            }
+            if (listPageModelId.isEmpty()){
+                // выводить пустой список listPageModelId
+                // возможно response.setData(Collections.singletonList(resultQuery));
+                // resultQuery=null
+            }else {
+
+            }
+
 
 
 

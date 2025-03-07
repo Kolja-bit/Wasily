@@ -1,18 +1,19 @@
 package searchengine.repositories;
 
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Modifying;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
-import org.springframework.transaction.annotation.Transactional;
 import searchengine.model.IndexModel;
-import searchengine.model.PageModel;
+import searchengine.model.LemmaModel;
 
 import java.util.List;
+import java.util.Optional;
 
 
 public interface IndexRepository extends JpaRepository<IndexModel, Integer> {
     List<IndexModel> findAllByPageId(Integer i);
+    List<IndexModel> findAllByLemmaId(Integer i);
+    List<Integer> findAllPageIdByLemmaId(LemmaModel l);
+
+    Optional<IndexModel> findByLemmaId(Integer integer);
 
     void deleteAllIndexModelByPageId(Integer i);
 
