@@ -105,8 +105,8 @@ public class PagesIndexingServiceImpl extends RecursiveAction {
                 pageRepository.save(page);
 
                 LemmasIndexingServiceImpl lemmasIndexingService =
-                        new LemmasIndexingServiceImpl(Jsoup.parse(page.getContent()).text());
-                recordLemmas(lemmasIndexingService.getMapLemmas(),site,page);
+                        new LemmasIndexingServiceImpl();
+                recordLemmas(lemmasIndexingService.getMapLemmas(Jsoup.parse(page.getContent()).text()),site,page);
 
             } catch (Exception e) {
                 e.printStackTrace();

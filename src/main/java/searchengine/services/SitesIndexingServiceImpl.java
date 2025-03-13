@@ -92,19 +92,7 @@ public class SitesIndexingServiceImpl implements SitesIndexingService {
                     PagesIndexingServiceImpl pagesIndexingService=new PagesIndexingServiceImpl(url,
                             sites,siteRepository,pageRepository,lemmasRepository,indexRepository);
                     pagesIndexingService.indexingPage(url,sites);
-                    /*sleep(1000);
-                    Document doc = configuration.getDocument(url);
-                PageModel page=new PageModel();
-                page.setPath(path);
-                page.setSite(sites);
-                page.setContent(doc.html());
-                page.setCode(doc.connection().response().statusCode());
-                pageRepository.save(page);
-                PagesIndexingServiceImpl pagesIndexingService=new PagesIndexingServiceImpl(url,
-                        sites,siteRepository,pageRepository,lemmasRepository,indexRepository);
-                LemmasIndexingServiceImpl lemmasIndexingService=
-                        new LemmasIndexingServiceImpl(Jsoup.parse(page.getContent()).text());
-                pagesIndexingService.recordLemmas();*/
+
 
                 } catch (Exception e) {
                     e.printStackTrace();

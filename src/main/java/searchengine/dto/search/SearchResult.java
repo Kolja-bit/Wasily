@@ -10,7 +10,7 @@ public class SearchResult {
         private boolean result;
         @JsonInclude(JsonInclude.Include.NON_DEFAULT)
         private int count;
-        @JsonInclude(JsonInclude.Include.NON_DEFAULT)
+        @JsonInclude(JsonInclude.Include.NON_NULL)
         private List<SearchResultQuery> data;
         @JsonInclude(JsonInclude.Include.NON_EMPTY)
         private volatile String error;

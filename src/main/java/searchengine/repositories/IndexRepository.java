@@ -2,7 +2,6 @@ package searchengine.repositories;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import searchengine.model.IndexModel;
-import searchengine.model.LemmaModel;
 
 import java.util.List;
 import java.util.Optional;
@@ -11,7 +10,7 @@ import java.util.Optional;
 public interface IndexRepository extends JpaRepository<IndexModel, Integer> {
     List<IndexModel> findAllByPageId(Integer i);
     List<IndexModel> findAllByLemmaId(Integer i);
-    List<Integer> findAllPageIdByLemmaId(LemmaModel l);
+    Optional<IndexModel> findByPageIdAndLemmaId(Integer i,Integer i1);
 
     Optional<IndexModel> findByLemmaId(Integer integer);
 
