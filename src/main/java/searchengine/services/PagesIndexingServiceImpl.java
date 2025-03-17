@@ -117,7 +117,7 @@ public class PagesIndexingServiceImpl extends RecursiveAction {
 
 
     }
-    public void recordLemmas(HashMap<String, Integer> hashMap,SitesModel sites,PageModel page){
+    public synchronized void recordLemmas(HashMap<String, Integer> hashMap,SitesModel sites,PageModel page){
 
         //HashMap<String, Integer> hashMap = getMapLemmas();
         for (Map.Entry<String, Integer> entry : hashMap.entrySet()) {
@@ -140,11 +140,17 @@ public class PagesIndexingServiceImpl extends RecursiveAction {
                 lemmaModel1.setFrequency(repetitionOfLemmasOnSite);
                 lemmasRepository.save(lemmaModel1);
 
-                IndexModel index=new IndexModel();
-                index.setLemma(lemmaModel1);
-                index.setPage(page);
-                index.setRank(Float.valueOf((entry.getValue())));
-                indexRepository.save(index);
+                Integer lemmaId=lemmaModel1.getId();
+                Integer pageId=page.getId();
+                //надо проверить работу
+                if (!indexRepository.findByPageIdAndLemmaId(pageId,lemmaId).isPresent()) {
+
+                    IndexModel index = new IndexModel();
+                    index.setLemma(lemmaModel1);
+                    index.setPage(page);
+                    index.setRank(Float.valueOf((entry.getValue())));
+                    indexRepository.save(index);
+                }
             }
         }
     }
