@@ -30,8 +30,10 @@ public class SearchServiceImpl implements SearchService{
     private final IndexRepository indexRepository;
     private final SitesList sitesList;
     private Map<String,List<IndexModel>> hashMap=null;
+    private HashMap<Integer,Double> sortedMap=null;
     private Integer numberOfPagesOnSite=0;
     private final LemmasIndexingServiceImpl lemmasIndexingService;
+    private volatile boolean controlNull=false;
     public SearchResult getSearch(String query, String stringUrl, int offset, int limit){
 
         SearchResult response=new SearchResult();
@@ -39,51 +41,31 @@ public class SearchServiceImpl implements SearchService{
             response.setResult(false);
             response.setError("Задан пустой поисковый запрос");
         }else {
-            // лист лемм по запросу
             int countPage=0;
             List<SearchResultQuery> searchResultQueryList=null;
-
-
             SitesModel sitesModel=siteRepository.findByUrl(stringUrl).get();
             String urlSite=stringUrl.substring(0,stringUrl.length()-1);
             String nameSite=sitesModel.getName();
             numberOfPagesOnSite=pageRepository.countPageBySite(sitesModel);
-
             getUniqueMapLemmas(query,sitesModel);
-
-
-            // выдаю пустой список
-            if (getListOfPagesCorrespondingToLemmasFromQuery().isEmpty()){
-                //SearchResultQuery resultQuery=new SearchResultQuery();
+                if (controlNull){
                 searchResultQueryList=new ArrayList<>(0);
-                //response.setData(searchResultQueryList);
-                //response.setCount(0);
-
+                    countPage=0;
+                    controlNull=false;
             }else {
+                    getListOfPagesCorrespondingToLemmasFromQuery();
                 searchResultQueryList=getListOfAnswersByQuery(urlSite,nameSite);
-                countPage=getMapPageIdByRelevance().size();
+                        countPage=sortedMap.size();
+                        log.info(String.valueOf(sortedMap));
                 }
-
-                // расчет количества страниц с полным совпадением с вопросом
-                //countPage=mapAbsoluteRelevancePages.size();
-
-
-
-
-
             response.setResult(true);
             response.setCount(countPage);
             response.setData(searchResultQueryList);
         }
         return response;
     }
-    public Map<String,List<IndexModel>> getUniqueMapLemmas(String query, SitesModel sitesModel){
+        public boolean getUniqueMapLemmas(String query, SitesModel sitesModel){
         List<String> uniqueListLemmas=lemmasIndexingService.getListLemmas(query);
-        //SitesModel sitesModel=siteRepository.findByUrl(stringUrl).get();
-        //String urlSite=stringUrl.substring(0,stringUrl.length()-1);
-        //String nameSite=sitesModel.getName();
-        //int numberOfPagesOnSite=pageRepository.countPageBySite(sitesModel);
-        //Map<String,List<IndexModel>> hashMap=new HashMap<>();
         hashMap=new HashMap<>();
         for (String lemma:uniqueListLemmas){
             if (lemmasRepository.findBySiteAndLemma(sitesModel,lemma).isPresent()) {
@@ -92,10 +74,11 @@ public class SearchServiceImpl implements SearchService{
                 List<IndexModel> indexModelByLemma = indexRepository.findAllByLemmaId(lemmaId);
                 hashMap.put(lemma,indexModelByLemma);
             }else {
+                controlNull=true;
                 String s="слово "+lemma+" отсутствует на страницах сайта "+sitesModel.getName();
             }
         }
-        return hashMap;
+        return controlNull;
     }
     public List<LemmaModel> getOptimalSortedListLemmas(){
         List<String> optimalListLemmas=new ArrayList<>();
@@ -103,13 +86,14 @@ public class SearchServiceImpl implements SearchService{
         for (Entry<String,List<IndexModel>> entry:hashMap.entrySet()){
             int maxNumberOfPagesWithLemma =entry.getValue().size();
             log.info(String.valueOf(maxNumberOfPagesWithLemma));
-            int leftoverPagesByLemma=numberOfPagesOnSite-maxNumberOfPagesWithLemma;
-            double optimalCountPage=numberOfPagesOnSite/leftoverPagesByLemma;
-            log.info(String.valueOf(numberOfPagesOnSite));
+            //int leftoverPagesByLemma=numberOfPagesOnSite-maxNumberOfPagesWithLemma;
+            int leftoverPagesByLemma=maxNumberOfPagesWithLemma/numberOfPagesOnSite;
+            double optimalCountPage=maxNumberOfPagesWithLemma/numberOfPagesOnSite;
+
             log.info(String.valueOf(optimalCountPage));
             //не работает
-            //if (optimalCountPage<=0.2){
-            if (leftoverPagesByLemma<=20){
+            if (optimalCountPage<=0.2){
+            //if (leftoverPagesByLemma<=0.2){
                 optimalListLemmaModel.add(lemmasRepository.findByLemma(entry.getKey()).get());
                 optimalListLemmas.add(lemmasRepository.findByLemma(entry.getKey()).get().getLemma());
             }
@@ -119,27 +103,33 @@ public class SearchServiceImpl implements SearchService{
                 .collect(Collectors.toList());
         return optimalSortedListLemmaModel;
     }
-    public List<PageModel> getListOfPagesCorrespondingToLemmasFromQuery(){
+        public boolean getListOfPagesCorrespondingToLemmasFromQuery(){
         List<LemmaModel> optimalSortedListLemmaModel=getOptimalSortedListLemmas();
-        Integer idLemma=optimalSortedListLemmaModel.get(0).getId();
-        List<PageModel> listPageModelId =indexRepository.findAllByLemmaId(idLemma)
-                .stream()
-                .map(IndexModel::getPage)
-                .collect(Collectors.toList());
-        for (int i=1;i<optimalSortedListLemmaModel.size();i++){
-            Integer idLemma1=optimalSortedListLemmaModel.get(i).getId();
-            List<PageModel> listPageModelId1 =indexRepository.findAllByLemmaId(idLemma1)
+        List<PageModel> listPageModelId=null;
+        if (!optimalSortedListLemmaModel.isEmpty()) {
+            Integer idLemma = optimalSortedListLemmaModel.get(0).getId();
+             listPageModelId = indexRepository.findAllByLemmaId(idLemma)
                     .stream()
                     .map(IndexModel::getPage)
                     .collect(Collectors.toList());
-            listPageModelId.retainAll(listPageModelId1);
+            for (int i = 1; i < optimalSortedListLemmaModel.size(); i++) {
+                Integer idLemma1 = optimalSortedListLemmaModel.get(i).getId();
+                List<PageModel> listPageModelId1 = indexRepository.findAllByLemmaId(idLemma1)
+                        .stream()
+                        .map(IndexModel::getPage)
+                        .collect(Collectors.toList());
+                listPageModelId.retainAll(listPageModelId1);
+            }
+        }else {
+            controlNull=true;
         }
-        return listPageModelId;
+        getMapPageIdByRelevance(listPageModelId);
+        log.info(String.valueOf(controlNull));
+        return controlNull;
     }
-    public HashMap<Integer,Double> getMapPageIdByRelevance(){
+    public HashMap<Integer,Double> getMapPageIdByRelevance(List<PageModel> listPageModelId){
         Map<Integer,Double> mapAbsoluteRelevancePages=new HashMap<>();
-        //for (PageModel pageModel:listPageModelId){
-            for (PageModel pageModel:getListOfPagesCorrespondingToLemmasFromQuery()){
+        for (PageModel pageModel:listPageModelId){
             double absoluteRelevancePages=0.0;
             Integer idPage=pageModel.getId();
             for (LemmaModel lemmaModel:getOptimalSortedListLemmas()){
@@ -158,7 +148,7 @@ public class SearchServiceImpl implements SearchService{
             double rel = Math.ceil(value * scale) / scale;
             mapAbsoluteRelevancePages.put(entry.getKey(),rel);
         }
-        HashMap<Integer,Double> sortedMap = mapAbsoluteRelevancePages.entrySet()
+        sortedMap = mapAbsoluteRelevancePages.entrySet()
                 .stream()
                 .sorted(Map.Entry.comparingByValue(Collections.reverseOrder()))
                 .collect(Collectors.toMap(
@@ -169,18 +159,13 @@ public class SearchServiceImpl implements SearchService{
     }
     public List<SearchResultQuery> getListOfAnswersByQuery(String urlSite,String nameSite){
         List<SearchResultQuery> searchResultQueryList=new ArrayList<>();
-        for (Map.Entry<Integer,Double> entry:getMapPageIdByRelevance().entrySet()){
+            for (Map.Entry<Integer,Double> entry:sortedMap.entrySet()){
             SearchResultQuery resultQuery=new SearchResultQuery();
-            //SearchResultQuery resultQuery=null;
             PageModel page=pageRepository.findById(entry.getKey()).get();
             String patchPage=page.getPath();
             String content=page.getContent();
-            //Document document = Jsoup.parse(content);
             String str1="";
-
-            //String cleanContent = document.text();
             StringBuilder stringBuilder=new StringBuilder();
-
             resultQuery.setSite(urlSite);
             resultQuery.setSiteName(nameSite);
             resultQuery.setUri(patchPage);
