@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Jsoup;
 import org.springframework.stereotype.Service;
+import searchengine.config.Site;
 import searchengine.config.SitesList;
 import searchengine.dto.search.SearchResult;
 import searchengine.dto.search.SearchResultQuery;
@@ -35,34 +36,46 @@ public class SearchServiceImpl implements SearchService{
     private final LemmasIndexingServiceImpl lemmasIndexingService;
     private volatile boolean controlNull=false;
     public SearchResult getSearch(String query, String stringUrl, int offset, int limit){
-
         SearchResult response=new SearchResult();
         if (query.isEmpty()){
             response.setResult(false);
             response.setError("Задан пустой поисковый запрос");
         }else {
-            int countPage=0;
-            List<SearchResultQuery> searchResultQueryList=null;
-            SitesModel sitesModel=siteRepository.findByUrl(stringUrl).get();
-            String urlSite=stringUrl.substring(0,stringUrl.length()-1);
-            String nameSite=sitesModel.getName();
-            numberOfPagesOnSite=pageRepository.countPageBySite(sitesModel);
-            getUniqueMapLemmas(query,sitesModel);
-                if (controlNull){
-                searchResultQueryList=new ArrayList<>(0);
-                    countPage=0;
-                    controlNull=false;
-            }else {
-                    getListOfPagesCorrespondingToLemmasFromQuery();
-                searchResultQueryList=getListOfAnswersByQuery(urlSite,nameSite);
-                        countPage=sortedMap.size();
-                        log.info(String.valueOf(sortedMap));
+            List<SearchResultQuery> sum=new ArrayList<>();
+            String siteUrl1="";
+            if (stringUrl == null ){
+                List<Site> listSites=sitesList.getSites();
+                for (Site site:listSites){
+                    siteUrl1=site.getUrl();
+                    for (SearchResultQuery searchResultQuery:getCreatingResponse(siteUrl1,query)){
+                        sum.add(searchResultQuery);
+                    }
                 }
+            }else {
+                siteUrl1=stringUrl;
+                sum=new ArrayList<>(getCreatingResponse(siteUrl1,query));
+            }
             response.setResult(true);
-            response.setCount(countPage);
-            response.setData(searchResultQueryList);
+            response.setCount(sum.size());
+            response.setData(sum);
         }
         return response;
+    }
+    public List<SearchResultQuery> getCreatingResponse(String string,String query){
+        List<SearchResultQuery> searchResultQueryList=null;
+        SitesModel sitesModel=siteRepository.findByUrl(string).get();
+        String urlSite=string.substring(0,string.length()-1);
+        String nameSite=sitesModel.getName();
+        numberOfPagesOnSite=pageRepository.countPageBySite(sitesModel);
+        getUniqueMapLemmas(query,sitesModel);
+        if (controlNull){
+            searchResultQueryList=new ArrayList<>(0);
+            controlNull=false;
+        }else {
+            getListOfPagesCorrespondingToLemmasFromQuery();
+            searchResultQueryList=getListOfAnswersByQuery(urlSite,nameSite);
+        }
+        return searchResultQueryList;
     }
         public boolean getUniqueMapLemmas(String query, SitesModel sitesModel){
         List<String> uniqueListLemmas=lemmasIndexingService.getListLemmas(query);
