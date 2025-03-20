@@ -41,23 +41,23 @@ public class SearchServiceImpl implements SearchService{
             response.setResult(false);
             response.setError("Задан пустой поисковый запрос");
         }else {
-            List<SearchResultQuery> sum=new ArrayList<>();
+            List<SearchResultQuery> summaryOfSearchQueries=new ArrayList<>();
             String siteUrl1="";
             if (stringUrl == null ){
                 List<Site> listSites=sitesList.getSites();
                 for (Site site:listSites){
                     siteUrl1=site.getUrl();
                     for (SearchResultQuery searchResultQuery:getCreatingResponse(siteUrl1,query)){
-                        sum.add(searchResultQuery);
+                        summaryOfSearchQueries.add(searchResultQuery);
                     }
                 }
             }else {
                 siteUrl1=stringUrl;
-                sum=new ArrayList<>(getCreatingResponse(siteUrl1,query));
+                summaryOfSearchQueries=new ArrayList<>(getCreatingResponse(siteUrl1,query));
             }
             response.setResult(true);
-            response.setCount(sum.size());
-            response.setData(sum);
+            response.setCount(summaryOfSearchQueries.size());
+            response.setData(summaryOfSearchQueries);
         }
         return response;
     }
@@ -177,22 +177,48 @@ public class SearchServiceImpl implements SearchService{
             PageModel page=pageRepository.findById(entry.getKey()).get();
             String patchPage=page.getPath();
             String content=page.getContent();
-            String str1="";
-            StringBuilder stringBuilder=new StringBuilder();
             resultQuery.setSite(urlSite);
             resultQuery.setSiteName(nameSite);
             resultQuery.setUri(patchPage);
             resultQuery.setTitle(Jsoup.parse(content).title());
             resultQuery.setRelevance(entry.getValue());
-
-            String cleanContent = Jsoup.parse(content).text();
-            String s=cleanContent.substring(0,300);
-            String lemmaString="<b>"+s+"</b>";
-            resultQuery.setSnippet(lemmaString);
-
+            resultQuery.setSnippet(String.valueOf(getResultingFragment(content)));
             searchResultQueryList.add(resultQuery);
         }
         return searchResultQueryList;
+    }
+    public StringBuilder getResultingFragment(String string){
+        List<LemmaModel> lemmaModelList=getOptimalSortedListLemmas();
+        List<String> list=lemmaModelList
+                .stream()
+                .map(LemmaModel::getLemma)
+                .collect(Collectors.toList());
+        StringBuilder stringBuilder=new StringBuilder();
+        String fragmentText=Jsoup.parse(string).text();
+            System.out.println(fragmentText);
+        for (String lemma:list) {
+            int indentBeforeLemma=0;
+            int indentAfterLemma=0;
+            int indexLemma = fragmentText.toLowerCase().indexOf(lemma.substring(0, lemma.length() - 1));
+            if (indexLemma>151){
+                indentBeforeLemma=150;
+            }else {
+                indentBeforeLemma=0;
+            }
+            if (fragmentText.length()-(indexLemma+lemma.length())>151){
+                indentAfterLemma=150;
+            }else {
+                indentAfterLemma=0;
+            }
+            String stringBeforeLemma=fragmentText.substring(indexLemma - indentBeforeLemma, indexLemma);
+            String stringLemma="<b>"+ fragmentText.substring(indexLemma, indexLemma + lemma.length()) +"</b>";
+            String stringAfterLemma=fragmentText.substring(indexLemma + lemma.length(),
+                    indexLemma + lemma.length() + indentAfterLemma);
+            stringBuilder.append(stringBeforeLemma)
+                    .append(stringLemma)
+                    .append(stringAfterLemma).append(" ");
+        }
+        return stringBuilder;
     }
 
 
