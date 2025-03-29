@@ -32,36 +32,89 @@ public class SearchServiceImpl implements SearchService{
     private final SitesList sitesList;
     private Map<String,List<IndexModel>> hashMap=null;
     private HashMap<Integer,Double> sortedMap=null;
+    private List<SearchResultQuery> summaryOfSearchQueries=null;
     private Integer numberOfPagesOnSite=0;
     private final LemmasIndexingServiceImpl lemmasIndexingService;
     private volatile boolean controlNull=false;
+    private volatile boolean controlData=true;
+
     public SearchResult getSearch(String query, String stringUrl, int offset, int limit){
-        SearchResult response=new SearchResult();
-        if (query.isEmpty()){
+        System.out.println("hello4");
+        //SearchResult response=new SearchResult();
+        SearchResult response=null;
+        if (query.isEmpty()||query==null){
+            response=new SearchResult();
             response.setResult(false);
             response.setError("Задан пустой поисковый запрос");
         }else {
-            List<SearchResultQuery> summaryOfSearchQueries=new ArrayList<>();
+            response=new SearchResult();
+            //List<SearchResultQuery> summaryOfSearchQueries=null;
+            //int count=0;
             String siteUrl1="";
             if (stringUrl == null ){
+                summaryOfSearchQueries=new ArrayList<>();
                 List<Site> listSites=sitesList.getSites();
                 for (Site site:listSites){
                     siteUrl1=site.getUrl();
-                    for (SearchResultQuery searchResultQuery:getCreatingResponse(siteUrl1,query)){
-                        summaryOfSearchQueries.add(searchResultQuery);
+                    if (controlData) {
+                        for (SearchResultQuery searchResultQuery : getCreatingResponse(siteUrl1, query)) {
+                            summaryOfSearchQueries.add(searchResultQuery);
+                        }
                     }
                 }
+                //count=summaryOfSearchQueries.size();
             }else {
                 siteUrl1=stringUrl;
-                summaryOfSearchQueries=new ArrayList<>(getCreatingResponse(siteUrl1,query));
+                //summaryOfSearchQueries=new ArrayList<>(getCreatingResponse(siteUrl1,query));
+                if (controlData) {
+                    System.out.println(controlData);
+                    //summaryOfSearchQueries = getCreatingResponse(siteUrl1, query);
+                    //summaryOfSearchQueries=new ArrayList<>(getCreatingResponse(siteUrl1,query));
+                    summaryOfSearchQueries=new ArrayList<>();
+                    summaryOfSearchQueries.addAll(getCreatingResponse(siteUrl1,query));
+                }
+                //count=summaryOfSearchQueries.size();
             }
+
+
+
             response.setResult(true);
-            response.setCount(summaryOfSearchQueries.size());
-            response.setData(summaryOfSearchQueries);
+            //response.setCount(count);
+            response.setCount(sortedMap.size());
+            //response.setData(summaryOfSearchQueries);
+
+
+
+            //System.out.println(offset);
+            //System.out.println(limit);
+            List<SearchResultQuery>stream=summaryOfSearchQueries
+                    .stream()
+                    .skip(0)
+                    //.skip(0+loopCounter)
+                    .limit(3)
+                    .collect(Collectors.toList());
+            response.setData(stream);
+            summaryOfSearchQueries.removeAll(stream);
+            if (0<summaryOfSearchQueries.size()&& summaryOfSearchQueries.size()<sortedMap.size()) {
+                //if (0<loopCounter && loopCounter<summaryOfSearchQueries.size()) {
+                //loopCounter=loopCounter+3;
+                    controlData = false;
+                    //как сделать последний цмкл с одним элементом с 10
+            }
+            if (summaryOfSearchQueries.size()==0){
+                summaryOfSearchQueries=new ArrayList<>();
+                sortedMap=new HashMap<>();
+                //loopCounter=0;
+                controlData = true;
+            }
+            System.out.println(summaryOfSearchQueries.size());
+            System.out.println(sortedMap.size());
         }
         return response;
     }
+
     public List<SearchResultQuery> getCreatingResponse(String string,String query){
+
         List<SearchResultQuery> searchResultQueryList=null;
         SitesModel sitesModel=siteRepository.findByUrl(string).get();
         String urlSite=string.substring(0,string.length()-1);
@@ -82,6 +135,7 @@ public class SearchServiceImpl implements SearchService{
         hashMap=new HashMap<>();
         for (String lemma:uniqueListLemmas){
             if (lemmasRepository.findBySiteAndLemma(sitesModel,lemma).isPresent()) {
+                System.out.println("Hello2");
                 LemmaModel lemmaModel = lemmasRepository.findBySiteAndLemma(sitesModel, lemma).get();
                 Integer lemmaId=lemmaModel.getId();
                 List<IndexModel> indexModelByLemma = indexRepository.findAllByLemmaId(lemmaId);
@@ -98,12 +152,9 @@ public class SearchServiceImpl implements SearchService{
         List<LemmaModel> optimalListLemmaModel=new ArrayList<>();
         for (Entry<String,List<IndexModel>> entry:hashMap.entrySet()){
             int maxNumberOfPagesWithLemma =entry.getValue().size();
-            log.info(String.valueOf(maxNumberOfPagesWithLemma));
             //int leftoverPagesByLemma=numberOfPagesOnSite-maxNumberOfPagesWithLemma;
             int leftoverPagesByLemma=maxNumberOfPagesWithLemma/numberOfPagesOnSite;
             double optimalCountPage=maxNumberOfPagesWithLemma/numberOfPagesOnSite;
-
-            log.info(String.valueOf(optimalCountPage));
             //не работает
             if (optimalCountPage<=0.2){
             //if (leftoverPagesByLemma<=0.2){
@@ -137,7 +188,6 @@ public class SearchServiceImpl implements SearchService{
             controlNull=true;
         }
         getMapPageIdByRelevance(listPageModelId);
-        log.info(String.valueOf(controlNull));
         return controlNull;
     }
     public HashMap<Integer,Double> getMapPageIdByRelevance(List<PageModel> listPageModelId){
@@ -195,7 +245,6 @@ public class SearchServiceImpl implements SearchService{
                 .collect(Collectors.toList());
         StringBuilder stringBuilder=new StringBuilder();
         String fragmentText=Jsoup.parse(string).text();
-            System.out.println(fragmentText);
         for (String lemma:list) {
             int indentBeforeLemma=0;
             int indentAfterLemma=0;
