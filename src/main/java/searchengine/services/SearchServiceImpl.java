@@ -39,8 +39,19 @@ public class SearchServiceImpl implements SearchService{
     private volatile boolean controlData=true;
 
     public SearchResult getSearch(String query, String stringUrl, int offset, int limit){
-        System.out.println("hello4");
-        //SearchResult response=new SearchResult();
+
+
+        List<String> n=null;
+        boolean u=true;
+        List<String> uniqueListLemmas1=null;
+            if (hashMap==null ) {
+            hashMap=new HashMap<>();
+        }
+        n = new ArrayList<>(hashMap.keySet());
+        uniqueListLemmas1 = lemmasIndexingService.getListLemmas(query);
+        u = uniqueListLemmas1.equals(n);
+
+
         SearchResult response=null;
         if (query.isEmpty()||query==null){
             response=new SearchResult();
@@ -48,65 +59,53 @@ public class SearchServiceImpl implements SearchService{
             response.setError("Задан пустой поисковый запрос");
         }else {
             response=new SearchResult();
-            //List<SearchResultQuery> summaryOfSearchQueries=null;
-            //int count=0;
             String siteUrl1="";
             if (stringUrl == null ){
-                summaryOfSearchQueries=new ArrayList<>();
                 List<Site> listSites=sitesList.getSites();
                 for (Site site:listSites){
                     siteUrl1=site.getUrl();
-                    if (controlData) {
+                    //if (controlData) {
+                        if (controlData || !u) {
+                            System.out.println(u);
+                            System.out.println("hello");
+                        summaryOfSearchQueries=new ArrayList<>();
                         for (SearchResultQuery searchResultQuery : getCreatingResponse(siteUrl1, query)) {
                             summaryOfSearchQueries.add(searchResultQuery);
                         }
                     }
                 }
-                //count=summaryOfSearchQueries.size();
+
             }else {
                 siteUrl1=stringUrl;
-                //summaryOfSearchQueries=new ArrayList<>(getCreatingResponse(siteUrl1,query));
-                if (controlData) {
+                //if (controlData) {
+                    if (controlData || !u) {
                     System.out.println(controlData);
-                    //summaryOfSearchQueries = getCreatingResponse(siteUrl1, query);
-                    //summaryOfSearchQueries=new ArrayList<>(getCreatingResponse(siteUrl1,query));
-                    summaryOfSearchQueries=new ArrayList<>();
-                    summaryOfSearchQueries.addAll(getCreatingResponse(siteUrl1,query));
+                    summaryOfSearchQueries = getCreatingResponse(siteUrl1, query);
                 }
-                //count=summaryOfSearchQueries.size();
+
             }
 
-
-
             response.setResult(true);
-            //response.setCount(count);
             response.setCount(sortedMap.size());
-            //response.setData(summaryOfSearchQueries);
-
-
-
-            //System.out.println(offset);
-            //System.out.println(limit);
             List<SearchResultQuery>stream=summaryOfSearchQueries
                     .stream()
                     .skip(0)
-                    //.skip(0+loopCounter)
                     .limit(3)
                     .collect(Collectors.toList());
             response.setData(stream);
             summaryOfSearchQueries.removeAll(stream);
-            if (0<summaryOfSearchQueries.size()&& summaryOfSearchQueries.size()<sortedMap.size()) {
-                //if (0<loopCounter && loopCounter<summaryOfSearchQueries.size()) {
-                //loopCounter=loopCounter+3;
+            if (0<summaryOfSearchQueries.size() && summaryOfSearchQueries.size()<sortedMap.size()) {
                     controlData = false;
-                    //как сделать последний цмкл с одним элементом с 10
+
             }
-            if (summaryOfSearchQueries.size()==0){
+            if (summaryOfSearchQueries.size()==0 ){
                 summaryOfSearchQueries=new ArrayList<>();
                 sortedMap=new HashMap<>();
-                //loopCounter=0;
                 controlData = true;
             }
+
+            //System.out.println(uniqueListLemmas);
+            //System.out.println(uniqueListLemmas1);
             System.out.println(summaryOfSearchQueries.size());
             System.out.println(sortedMap.size());
         }

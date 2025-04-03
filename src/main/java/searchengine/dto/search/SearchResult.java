@@ -12,7 +12,7 @@ public class SearchResult {
         @JsonInclude(JsonInclude.Include.NON_EMPTY)
         private int count;
         @JsonInclude(JsonInclude.Include.NON_NULL)
-        private volatile List<SearchResultQuery> data;
+        private  List<SearchResultQuery> data;
         @JsonInclude(JsonInclude.Include.NON_EMPTY)
         private volatile String error;
 
