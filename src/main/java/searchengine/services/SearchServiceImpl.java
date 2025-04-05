@@ -40,74 +40,69 @@ public class SearchServiceImpl implements SearchService{
 
     public SearchResult getSearch(String query, String stringUrl, int offset, int limit){
 
-
-        List<String> n=null;
-        boolean u=true;
-        List<String> uniqueListLemmas1=null;
-            if (hashMap==null ) {
-            hashMap=new HashMap<>();
-        }
-        n = new ArrayList<>(hashMap.keySet());
-        uniqueListLemmas1 = lemmasIndexingService.getListLemmas(query);
-        u = uniqueListLemmas1.equals(n);
-
-
-        SearchResult response=null;
-        if (query.isEmpty()||query==null){
-            response=new SearchResult();
-            response.setResult(false);
-            response.setError("Задан пустой поисковый запрос");
-        }else {
-            response=new SearchResult();
-            String siteUrl1="";
-            if (stringUrl == null ){
-                List<Site> listSites=sitesList.getSites();
-                for (Site site:listSites){
-                    siteUrl1=site.getUrl();
-                    //if (controlData) {
+        SearchResult response = null;
+        try {
+            List<String> n = null;
+            boolean u = true;
+            List<String> uniqueListLemmas1 = null;
+            if (hashMap == null) {
+                hashMap = new HashMap<>();
+            }
+            n = new ArrayList<>(hashMap.keySet());
+            uniqueListLemmas1 = lemmasIndexingService.getListLemmas(query);
+            u = uniqueListLemmas1.equals(n);
+            if (query.isEmpty() || query == null) {
+                response = new SearchResult();
+                response.setResult(false);
+                response.setError("Задан пустой поисковый запрос");
+            } else {
+                response = new SearchResult();
+                String siteUrl1 = "";
+                if (stringUrl == null) {
+                    List<Site> listSites = sitesList.getSites();
+                    for (Site site : listSites) {
+                        siteUrl1 = site.getUrl();
                         if (controlData || !u) {
-                            System.out.println(u);
-                            System.out.println("hello");
-                        summaryOfSearchQueries=new ArrayList<>();
-                        for (SearchResultQuery searchResultQuery : getCreatingResponse(siteUrl1, query)) {
-                            summaryOfSearchQueries.add(searchResultQuery);
+                            summaryOfSearchQueries = new ArrayList<>();
+                            for (SearchResultQuery searchResultQuery : getCreatingResponse(siteUrl1, query)) {
+                                summaryOfSearchQueries.add(searchResultQuery);
+                            }
                         }
                     }
-                }
 
-            }else {
-                siteUrl1=stringUrl;
-                //if (controlData) {
+                } else {
+                    siteUrl1 = stringUrl;
                     if (controlData || !u) {
-                    System.out.println(controlData);
-                    summaryOfSearchQueries = getCreatingResponse(siteUrl1, query);
+                        System.out.println(controlData);
+                        summaryOfSearchQueries = getCreatingResponse(siteUrl1, query);
+                    }
+
                 }
 
-            }
-
-            response.setResult(true);
-            response.setCount(sortedMap.size());
-            List<SearchResultQuery>stream=summaryOfSearchQueries
-                    .stream()
-                    .skip(0)
-                    .limit(3)
-                    .collect(Collectors.toList());
-            response.setData(stream);
-            summaryOfSearchQueries.removeAll(stream);
-            if (0<summaryOfSearchQueries.size() && summaryOfSearchQueries.size()<sortedMap.size()) {
+                response.setResult(true);
+                response.setCount(sortedMap.size());
+                List<SearchResultQuery> stream = summaryOfSearchQueries
+                        .stream()
+                        //.skip(0)
+                        //.limit(3)
+                        .skip(offset)
+                        .limit(limit)
+                        .collect(Collectors.toList());
+                response.setData(stream);
+                summaryOfSearchQueries.removeAll(stream);
+                if (0 < summaryOfSearchQueries.size() && summaryOfSearchQueries.size() < sortedMap.size()) {
                     controlData = false;
 
+                }
+                if (summaryOfSearchQueries.size() == 0) {
+                    summaryOfSearchQueries = new ArrayList<>();
+                    sortedMap = new HashMap<>();
+                    controlData = true;
+                }
             }
-            if (summaryOfSearchQueries.size()==0 ){
-                summaryOfSearchQueries=new ArrayList<>();
-                sortedMap=new HashMap<>();
-                controlData = true;
-            }
-
-            //System.out.println(uniqueListLemmas);
-            //System.out.println(uniqueListLemmas1);
-            System.out.println(summaryOfSearchQueries.size());
-            System.out.println(sortedMap.size());
+        }catch (Exception e){
+            e.getMessage();
+            response.setError("500  Ошибка сервера");
         }
         return response;
     }
@@ -247,7 +242,8 @@ public class SearchServiceImpl implements SearchService{
         for (String lemma:list) {
             int indentBeforeLemma=0;
             int indentAfterLemma=0;
-            int indexLemma = fragmentText.toLowerCase().indexOf(lemma.substring(0, lemma.length() - 1));
+            int indexLemma = fragmentText.toLowerCase().indexOf(lemma.substring(0, lemma.length() - 2));
+            //int indexLemma = fragmentText.toLowerCase().indexOf(lemma.substring(0, lemma.length() - 1));
             if (indexLemma>151){
                 indentBeforeLemma=150;
             }else {
