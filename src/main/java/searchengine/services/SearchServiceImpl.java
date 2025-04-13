@@ -1,6 +1,7 @@
 package searchengine.services;
 
 import lombok.RequiredArgsConstructor;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Jsoup;
 import org.springframework.stereotype.Service;
@@ -37,32 +38,49 @@ public class SearchServiceImpl implements SearchService{
     private final LemmasIndexingServiceImpl lemmasIndexingService;
     private volatile boolean controlNull=false;
     private volatile boolean controlData=true;
+    private String siteUrl1 = "";
 
-    public SearchResult getSearch(String query, String stringUrl, int offset, int limit){
+    @SneakyThrows
+    public SearchResult getSearch (String query, String stringUrl, int offset, int limit) {
 
         SearchResult response = null;
         try {
-            List<String> n = null;
-            boolean u = true;
-            List<String> uniqueListLemmas1 = null;
+            //List<String> n = null;
+            //boolean u = true;
+            //List<String> uniqueListLemmas1 = null;
             if (hashMap == null) {
                 hashMap = new HashMap<>();
             }
-            n = new ArrayList<>(hashMap.keySet());
-            uniqueListLemmas1 = lemmasIndexingService.getListLemmas(query);
-            u = uniqueListLemmas1.equals(n);
+            //n = new ArrayList<>(hashMap.keySet());
+            //uniqueListLemmas1 = lemmasIndexingService.getListLemmas(query);
+            //u = uniqueListLemmas1.equals(n);
             if (query.isEmpty() || query == null) {
                 response = new SearchResult();
                 response.setResult(false);
                 response.setError("Задан пустой поисковый запрос");
             } else {
                 response = new SearchResult();
-                String siteUrl1 = "";
+                //String siteUrl1 = "";
                 if (stringUrl == null) {
                     List<Site> listSites = sitesList.getSites();
                     for (Site site : listSites) {
+
+
+
+                        repeatControl(query,site.getUrl());
+                        /*boolean u =uniqueListLemmas1.equals(n);
+                        boolean j=site.getUrl().equals(siteUrl1);//это добавлено 12.04
+                        //if (!u || !j){
+                            if ((!u&&j) || (!j&&u)){
+                            summaryOfSearchQueries = new ArrayList<>();
+                            sortedMap = new HashMap<>();
+                            controlData = true;
+                        }*/
+
+
                         siteUrl1 = site.getUrl();
-                        if (controlData || !u) {
+                        //if (controlData || !u) {
+                            if (controlData ) {
                             summaryOfSearchQueries = new ArrayList<>();
                             for (SearchResultQuery searchResultQuery : getCreatingResponse(siteUrl1, query)) {
                                 summaryOfSearchQueries.add(searchResultQuery);
@@ -71,9 +89,20 @@ public class SearchServiceImpl implements SearchService{
                     }
 
                 } else {
+
+
+                    repeatControl(query,stringUrl);
+                    /*boolean j=stringUrl.equals(siteUrl1);//это добавлено 12.04
+                    if ((!u&&j) || (!j&&u)){
+                        summaryOfSearchQueries = new ArrayList<>();
+                        sortedMap = new HashMap<>();
+                        controlData = true;
+                    }*/
+
+
                     siteUrl1 = stringUrl;
-                    if (controlData || !u) {
-                        System.out.println(controlData);
+                    //if (controlData || !u) {
+                        if (controlData ) {
                         summaryOfSearchQueries = getCreatingResponse(siteUrl1, query);
                     }
 
@@ -83,10 +112,10 @@ public class SearchServiceImpl implements SearchService{
                 response.setCount(sortedMap.size());
                 List<SearchResultQuery> stream = summaryOfSearchQueries
                         .stream()
-                        //.skip(0)
-                        //.limit(3)
-                        .skip(offset)
-                        .limit(limit)
+                        .skip(0)
+                        .limit(3)
+                        //.skip(offset)
+                        //.limit(limit)
                         .collect(Collectors.toList());
                 response.setData(stream);
                 summaryOfSearchQueries.removeAll(stream);
@@ -101,13 +130,22 @@ public class SearchServiceImpl implements SearchService{
                 }
             }
         }catch (Exception e){
-            e.getMessage();
-            response.setError("500  Ошибка сервера");
+            throw new Exception("Ошибка сервера");
         }
         return response;
     }
-
-    public List<SearchResultQuery> getCreatingResponse(String string,String query){
+    public void repeatControl(String str,String str1){
+        List<String> uniqueListLemmas1 = lemmasIndexingService.getListLemmas(str);
+        List<String> n = new ArrayList<>(hashMap.keySet());
+        boolean u =uniqueListLemmas1.equals(n);
+        boolean j=str1.equals(siteUrl1);
+        if ((!u&&j) || (!j&&u)){
+            summaryOfSearchQueries = new ArrayList<>();
+            sortedMap = new HashMap<>();
+            controlData = true;
+        }
+    }
+    public List<SearchResultQuery> getCreatingResponse(String string, String query){
 
         List<SearchResultQuery> searchResultQueryList=null;
         SitesModel sitesModel=siteRepository.findByUrl(string).get();
@@ -124,19 +162,17 @@ public class SearchServiceImpl implements SearchService{
         }
         return searchResultQueryList;
     }
-        public boolean getUniqueMapLemmas(String query, SitesModel sitesModel){
+        public boolean getUniqueMapLemmas(String query, SitesModel sitesModel)  {
         List<String> uniqueListLemmas=lemmasIndexingService.getListLemmas(query);
         hashMap=new HashMap<>();
         for (String lemma:uniqueListLemmas){
             if (lemmasRepository.findBySiteAndLemma(sitesModel,lemma).isPresent()) {
-                System.out.println("Hello2");
                 LemmaModel lemmaModel = lemmasRepository.findBySiteAndLemma(sitesModel, lemma).get();
                 Integer lemmaId=lemmaModel.getId();
                 List<IndexModel> indexModelByLemma = indexRepository.findAllByLemmaId(lemmaId);
                 hashMap.put(lemma,indexModelByLemma);
             }else {
                 controlNull=true;
-                String s="слово "+lemma+" отсутствует на страницах сайта "+sitesModel.getName();
             }
         }
         return controlNull;
@@ -145,13 +181,16 @@ public class SearchServiceImpl implements SearchService{
         List<String> optimalListLemmas=new ArrayList<>();
         List<LemmaModel> optimalListLemmaModel=new ArrayList<>();
         for (Entry<String,List<IndexModel>> entry:hashMap.entrySet()){
-            int maxNumberOfPagesWithLemma =entry.getValue().size();
-            //int leftoverPagesByLemma=numberOfPagesOnSite-maxNumberOfPagesWithLemma;
-            int leftoverPagesByLemma=maxNumberOfPagesWithLemma/numberOfPagesOnSite;
-            double optimalCountPage=maxNumberOfPagesWithLemma/numberOfPagesOnSite;
-            //не работает
-            if (optimalCountPage<=0.2){
-            //if (leftoverPagesByLemma<=0.2){
+            //double maxNumberOfPagesWithLemma =entry.getValue().size();//это оставить
+
+            int maxNumberOfPagesWithLemma =entry.getValue().size();//это удалить
+            double optimalCountPage=maxNumberOfPagesWithLemma/numberOfPagesOnSite;//этот удалить
+
+            //double optimalCountPage=numberOfPagesOnSite/maxNumberOfPagesWithLemma;// этот оставлять
+
+
+            if (optimalCountPage<=0.2){//этот удалить
+                //if (optimalCountPage>=1.8){//этот оставить
                 optimalListLemmaModel.add(lemmasRepository.findByLemma(entry.getKey()).get());
                 optimalListLemmas.add(lemmasRepository.findByLemma(entry.getKey()).get().getLemma());
             }
@@ -231,7 +270,7 @@ public class SearchServiceImpl implements SearchService{
         }
         return searchResultQueryList;
     }
-    public StringBuilder getResultingFragment(String string){
+    public StringBuilder getResultingFragment(String string) {
         List<LemmaModel> lemmaModelList=getOptimalSortedListLemmas();
         List<String> list=lemmaModelList
                 .stream()
@@ -242,8 +281,8 @@ public class SearchServiceImpl implements SearchService{
         for (String lemma:list) {
             int indentBeforeLemma=0;
             int indentAfterLemma=0;
-            int indexLemma = fragmentText.toLowerCase().indexOf(lemma.substring(0, lemma.length() - 2));
-            //int indexLemma = fragmentText.toLowerCase().indexOf(lemma.substring(0, lemma.length() - 1));
+            //int indexLemma = fragmentText.toLowerCase().indexOf(lemma.substring(0, lemma.length() - 2));//это оставить
+            int indexLemma = fragmentText.toLowerCase().indexOf(lemma.substring(0, lemma.length() - 1));//это удалить
             if (indexLemma>151){
                 indentBeforeLemma=150;
             }else {
