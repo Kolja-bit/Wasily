@@ -112,10 +112,10 @@ public class SearchServiceImpl implements SearchService{
                 response.setCount(sortedMap.size());
                 List<SearchResultQuery> stream = summaryOfSearchQueries
                         .stream()
-                        .skip(0)
-                        .limit(3)
-                        //.skip(offset)
-                        //.limit(limit)
+                        //.skip(0)
+                        //.limit(3)
+                        .skip(offset)
+                        .limit(limit)
                         .collect(Collectors.toList());
                 response.setData(stream);
                 summaryOfSearchQueries.removeAll(stream);
@@ -181,16 +181,16 @@ public class SearchServiceImpl implements SearchService{
         List<String> optimalListLemmas=new ArrayList<>();
         List<LemmaModel> optimalListLemmaModel=new ArrayList<>();
         for (Entry<String,List<IndexModel>> entry:hashMap.entrySet()){
-            //double maxNumberOfPagesWithLemma =entry.getValue().size();//это оставить
+            double maxNumberOfPagesWithLemma =entry.getValue().size();//это оставить
 
-            int maxNumberOfPagesWithLemma =entry.getValue().size();//это удалить
-            double optimalCountPage=maxNumberOfPagesWithLemma/numberOfPagesOnSite;//этот удалить
+            //int maxNumberOfPagesWithLemma =entry.getValue().size();//это удалить
+            //double optimalCountPage=maxNumberOfPagesWithLemma/numberOfPagesOnSite;//этот удалить
 
-            //double optimalCountPage=numberOfPagesOnSite/maxNumberOfPagesWithLemma;// этот оставлять
+            double optimalCountPage=numberOfPagesOnSite/maxNumberOfPagesWithLemma;// этот оставлять
 
 
-            if (optimalCountPage<=0.2){//этот удалить
-                //if (optimalCountPage>=1.8){//этот оставить
+            //if (optimalCountPage<=0.2){//этот удалить
+                if (optimalCountPage>=1.8){//этот оставить
                 optimalListLemmaModel.add(lemmasRepository.findByLemma(entry.getKey()).get());
                 optimalListLemmas.add(lemmasRepository.findByLemma(entry.getKey()).get().getLemma());
             }
