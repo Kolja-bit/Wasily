@@ -4,7 +4,7 @@ import lombok.Data;
 
 @Data
 //@AllArgsConstructor
-public class ModelAndView {
+public class ErrorModel {
     private int StatusCode;
     private String message;
 }
