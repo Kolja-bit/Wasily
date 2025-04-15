@@ -17,8 +17,7 @@ public class ErrorHandler extends ResponseEntityExceptionHandler {
         indexingResponse.setResult(false);
         ErrorModel modelAndView=new ErrorModel();
         modelAndView.setStatusCode(HttpStatus.INTERNAL_SERVER_ERROR.value());
-        modelAndView.setMessage(ex.getMessage());
-        indexingResponse.setError(modelAndView.getStatusCode()+"  "+modelAndView.getMessage());
+        indexingResponse.setError(modelAndView.getStatusCode()+"  "+modelAndView.getReturnResponse());
         return ResponseEntity.badRequest().body(indexingResponse);
     }
 }
