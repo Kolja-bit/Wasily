@@ -119,7 +119,6 @@ public class PagesIndexingServiceImpl extends RecursiveAction {
     }
     public synchronized void recordLemmas(HashMap<String, Integer> hashMap,SitesModel sites,PageModel page){
 
-        //HashMap<String, Integer> hashMap = getMapLemmas();
         for (Map.Entry<String, Integer> entry : hashMap.entrySet()) {
             if (!lemmasRepository.existsBySiteAndLemma(sites,entry.getKey())){
 
@@ -142,7 +141,6 @@ public class PagesIndexingServiceImpl extends RecursiveAction {
 
                 Integer lemmaId=lemmaModel1.getId();
                 Integer pageId=page.getId();
-                //надо проверить работу
                 if (!indexRepository.findByPageIdAndLemmaId(pageId,lemmaId).isPresent()) {
 
                     IndexModel index = new IndexModel();

@@ -15,11 +15,9 @@ public class IndexModel implements Serializable {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
     @OnDelete(action = OnDeleteAction.CASCADE)
-    //@ManyToOne(cascade = CascadeType.ALL)
     @ManyToOne(cascade = CascadeType.MERGE)
     @JoinColumn (name ="page_id",nullable = false,foreignKey = @ForeignKey(name ="page_foreign_key"))
     private PageModel page;
-    //@ManyToOne (cascade = CascadeType.ALL)
     @ManyToOne (cascade = CascadeType.MERGE)
     @JoinColumn (name ="lemma_id",nullable = false,foreignKey = @ForeignKey(name ="lemma_foreign_key"))
     private LemmaModel lemma;

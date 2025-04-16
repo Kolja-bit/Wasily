@@ -17,11 +17,6 @@ import java.util.Set;
 @RequiredArgsConstructor
 @Service
 public class LemmasIndexingServiceImpl {
-    //private final String stringHtml;
-    //private final SitesModel sites;
-    //private final PageModel page;
-    //private final LemmasRepository lemmasRepository;
-    //private final IndexRepository indexRepository;
     private LuceneMorphology luceneMorph =null;
 
 

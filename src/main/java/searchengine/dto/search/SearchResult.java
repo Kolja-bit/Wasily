@@ -8,7 +8,6 @@ import java.util.List;
 @Data
 public class SearchResult {
         private boolean result;
-        //@JsonInclude(JsonInclude.Include.NON_DEFAULT)
         @JsonInclude(JsonInclude.Include.NON_EMPTY)
         private int count;
         @JsonInclude(JsonInclude.Include.NON_NULL)

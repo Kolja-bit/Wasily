@@ -15,10 +15,4 @@ public interface IndexRepository extends JpaRepository<IndexModel, Integer> {
     Optional<IndexModel> findByLemmaId(Integer integer);
 
     void deleteAllIndexModelByPageId(Integer i);
-
-    /*@Modifying
-    @Query("DELETE FROM search_index WHERE page_id=:i ")
-    void deleteAllByPageId(@Param("i") Integer i);
-    @Query("SELECT i FROM IndexModel i JOIN FETCH i.page p JOIN FETCH i.lemma l WHERE p = :page")
-    List<IndexModel> findByPage(@Param("page") PageModel page);*/
 }

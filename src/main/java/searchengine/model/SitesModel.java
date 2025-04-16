@@ -19,7 +19,6 @@ public class SitesModel {
     @Enumerated(EnumType.STRING)
     @Column(columnDefinition = "ENUM('INDEXING', 'INDEXED', 'FAILED')",nullable = false)
     private SiteStatusModel status;
-    //@Timestamp
     @Column(name = "status_time",nullable = false)
     private LocalDateTime statusTime;
     @Column(name = "last_error",columnDefinition = "TEXT")
